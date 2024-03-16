@@ -10,6 +10,8 @@
 
 #include <QtCore>
 #include <QtDebug>
+#include <QFileDialog>
+#include <QDir>
 
 #include <cstdlib>
 #include <fstream>
@@ -120,6 +122,69 @@ namespace
         std::cout << "Elapsed time: " << elapsed.count() << " s\n";
     }
 
+    void readMorphologyDf(DataFrame& df, QString fileName, std::vector<float>& matrix, unsigned int& numCols)
+    {
+        auto start = std::chrono::high_resolution_clock::now();
+        std::cout << "Starting read" << std::endl;
+        int numStringColumns = 1;
+
+        std::vector<QString> row(numStringColumns);
+
+        QFile inputFile(fileName);
+        if (inputFile.open(QIODevice::ReadOnly))
+        {
+            QTextStream in(&inputFile);
+
+            // Read header
+            if (!in.atEnd())
+            {
+                QString line = in.readLine();
+
+                QStringList tokens = line.split(",");
+                numCols = (tokens.size() - numStringColumns);
+
+                for (int i = 0; i < tokens.size(); i++)
+                {
+                    QString& token = tokens[i];
+                    token.replace("\"", "");
+                }
+
+                df.setHeaders(tokens);
+            }
+
+            std::vector<float> dataRow(numCols);
+            while (!in.atEnd())
+            {
+                QString line = in.readLine();
+
+                QStringList tokens = line.split(",");
+
+                for (int i = 0; i < numStringColumns; i++)
+                {
+                    QString token = tokens[i];
+                    token.replace("\"", "");
+                    row[i] = token;
+                }
+
+                df.getData().push_back(row);
+
+                for (int col = 0; col < numCols; col++)
+                    dataRow[col] = tokens[col + numStringColumns].toFloat();
+
+                matrix.insert(matrix.end(), dataRow.begin(), dataRow.end());
+            }
+            inputFile.close();
+        }
+        else
+        {
+            throw DataLoadException(fileName, "File was not found at location.");
+        }
+
+        auto finish = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = finish - start;
+        std::cout << "Elapsed time: " << elapsed.count() << " s\n";
+    }
+
     std::unordered_map<QString, std::vector<unsigned int>> makeClustersFromList(std::vector<QString> list)
     {
         std::unordered_map<QString, std::vector<unsigned int>> clusterData;
@@ -149,10 +214,38 @@ void PatchSeqDataLoader::init()
 
 void PatchSeqDataLoader::loadData()
 {
-    const QString fileName = AskForFileName(tr("Metadata Files (*.csv)"));
+    QDir dir = QFileDialog::getExistingDirectory(nullptr, tr("Open Directory"),
+        "/home", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+
+    QStringList csvFiles = dir.entryList(QStringList() << "*.csv" << "*.CSV", QDir::Files);
+    QString gexprFilePath;
+    QString ephysFilePath;
+    QString morphoFilePath;
+    QString metadataFilePath;
+    
+    for (QString filePath : csvFiles)
+    {
+        if (filePath.contains("IDs"))
+            gexprFilePath = dir.filePath(filePath);
+        if (filePath.contains("ephys"))
+            ephysFilePath = dir.filePath(filePath);
+        if (filePath.contains("morpho"))
+            morphoFilePath = dir.filePath(filePath);
+        if (filePath.contains("metadata"))
+            metadataFilePath = dir.filePath(filePath);
+
+        qDebug() << filePath;
+    }
+
+    qDebug() << gexprFilePath;
+    qDebug() << ephysFilePath;
+    qDebug() << morphoFilePath;
+    qDebug() << metadataFilePath;
+
+    //const QString fileName = AskForFileName(tr("Metadata Files (*.csv)"));
 
     // Don't try to load a file if the dialog was cancelled or the file name is empty
-    if (fileName.isNull() || fileName.isEmpty())
+    if (metadataFilePath.isNull() || metadataFilePath.isEmpty())
         return;
 
     qDebug() << "Loading taxonomy";
@@ -162,19 +255,19 @@ void PatchSeqDataLoader::loadData()
     DataFrame taxonomyDf;
     readDataFrame(taxonomyDf, "D:/Dropbox/Julian/Patchseq/FinalHumanMTGclusterAnnotation_update.csv");
 
-    qDebug() << "Loading CSV file: " << fileName;
+    qDebug() << "Loading CSV file: " << metadataFilePath;
 
     // Read metadata file
     DataFrame metadata;
-    readDataFrame(metadata, fileName);
+    readDataFrame(metadata, metadataFilePath);
 
     // Read gene expression file
-    const QString gexprFileName = AskForFileName(tr("Gene Expression Files (*.csv)"));
+    //const QString gexprFileName = AskForFileName(tr("Gene Expression Files (*.csv)"));
 
     DataFrame geneExpressionDf;
     std::vector<float> geneExpressionMatrix;
     unsigned int numCols;
-    readGeneExpressionDf(geneExpressionDf, gexprFileName, geneExpressionMatrix, numCols);
+    readGeneExpressionDf(geneExpressionDf, gexprFilePath, geneExpressionMatrix, numCols);
 
     for (int i = 0; i < std::min(20, (int) geneExpressionDf.getHeaders().size()); i++)
     {
@@ -182,7 +275,7 @@ void PatchSeqDataLoader::loadData()
     }
 
     Dataset<Points> pointData;
-    pointData = mv::data().createDataset<Points>("Points", QFileInfo(fileName).baseName());
+    pointData = mv::data().createDataset<Points>("Points", QFileInfo(gexprFilePath).baseName());
 
     pointData->setData(geneExpressionMatrix, numCols);
 
@@ -225,7 +318,7 @@ void PatchSeqDataLoader::loadData()
     std::cout << "NUM CLUSTERS LIST: " << treeCluster.size();
 
     Dataset<Clusters> treeClusterData;
-    treeClusterData = mv::data().createDataset<Points>("Cluster", QFileInfo(fileName).baseName(), pointData);
+    treeClusterData = mv::data().createDataset<Points>("Cluster", QFileInfo(gexprFilePath).baseName(), pointData);
 
     std::unordered_map<QString, std::vector<unsigned int>> clusterData = makeClustersFromList(treeCluster);
 
@@ -264,11 +357,6 @@ void PatchSeqDataLoader::loadData()
         {
             qDebug() << "ERROR: Failed to find attributes in taxonomy CSV: " << kv.first;
         }
-        //QColor color = { dataContent.clusterColors[i * 3], dataContent.clusterColors[i * 3 + 1] , dataContent.clusterColors[i * 3 + 2] };
-        //cluster.setColor(color);
-
-        //cluster.getIndices() = std::vector<std::uint32_t>(dataContent.clusterIndices.begin() + globalIndicesOffset, dataContent.clusterIndices.begin() + globalIndicesOffset + dataContent.clusterSizes[i]);
-        //globalIndicesOffset += dataContent.clusterSizes[i];
 
         cluster.setIndices(kv.second);
 
@@ -278,6 +366,21 @@ void PatchSeqDataLoader::loadData()
     mv::events().notifyDatasetDataChanged(treeClusterData);
     mv::events().notifyDatasetDataDimensionsChanged(treeClusterData);
 
+    // Load morphology data
+    //const QString morphoFileName = "D:/Dropbox/Julian/Patchseq/ProvidedData/allen_test_human_exc_simple_morpho.csv";
+    DataFrame morphologyDf;
+    std::vector<float> morphologyMatrix;
+    unsigned int numMorphoCols;
+    readMorphologyDf(morphologyDf, morphoFilePath, morphologyMatrix, numMorphoCols);
+
+    Dataset<Points> morphoData;
+    morphoData = mv::data().createDataset<Points>("Points", QFileInfo(morphoFilePath).baseName());
+
+    morphoData->setData(morphologyMatrix, numMorphoCols);
+
+    qDebug() << "Notify data changed";
+    events().notifyDatasetDataChanged(morphoData);
+    events().notifyDatasetDataDimensionsChanged(morphoData);
 
     //for (std::vector<QString>& row : metadata)
     //{
