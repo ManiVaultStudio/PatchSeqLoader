@@ -18,6 +18,9 @@ public:
 
     void setHeaders(const QStringList& columnNames);
     void reorder(std::vector<int> order);
+    void subsetAndReorderAccordingTo(DataFrame& rightDf, QString columnNameLeft, QString columnNameRight);
+
+    static DataFrame subsetAndReorderByColumn(DataFrame& leftDf, DataFrame& rightDf, QString columnNameLeft, QString columnNameRight);
 
     std::vector<QString> operator[](QString columnName);
 

@@ -47,6 +47,73 @@ void DataFrame::reorder(std::vector<int> order)
     _data = reorderedData;
 }
 
+void DataFrame::subsetAndReorderAccordingTo(DataFrame& rightDf, QString columnNameLeft, QString columnNameRight)
+{
+    std::vector<QString> columnRight = rightDf[columnNameRight];
+    std::vector<QString> columnLeft = (*this)[columnNameLeft];
+
+    // Make a map out of meta column
+    std::unordered_map<QString, int> indexMap;
+    for (int i = 0; i < columnLeft.size(); i++)
+    {
+        indexMap[columnLeft[i]] = i;
+    }
+
+    // Find ordering
+    std::vector<int> ordering;
+    for (const QString& cell_id : columnRight)
+    {
+        if (indexMap.find(cell_id) == indexMap.end())
+        {
+            qDebug() << "Failed to find cell ID: " << cell_id << " in metadata file.";
+        }
+        int index = indexMap[cell_id];
+        ordering.push_back(index);
+    }
+
+    // Subset and reorder metadata
+    reorder(ordering);
+}
+
+DataFrame DataFrame::subsetAndReorderByColumn(DataFrame& leftDf, DataFrame& rightDf, QString columnNameLeft, QString columnNameRight)
+{
+    std::vector<QString> columnRight = rightDf[columnNameRight];
+    std::vector<QString> columnLeft = leftDf[columnNameLeft];
+
+    // Make a map out of meta column
+    std::unordered_map<QString, int> indexMap;
+    for (int i = 0; i < columnLeft.size(); i++)
+    {
+        indexMap[columnLeft[i]] = i;
+    }
+
+    // Find ordering
+    std::vector<int> ordering;
+    for (const QString& cell_id : columnRight)
+    {
+        if (indexMap.find(cell_id) == indexMap.end())
+        {
+            qDebug() << "Failed to find cell ID: " << cell_id << " in metadata file.";
+        }
+        int index = indexMap[cell_id];
+        ordering.push_back(index);
+    }
+
+    // Subset and reorder metadata
+    std::vector<std::vector<QString>> reorderedData;
+
+    for (const int index : ordering)
+    {
+        reorderedData.push_back(leftDf._data[index]);
+    }
+
+    DataFrame resultDf;
+    resultDf._headers = leftDf._headers;
+    resultDf._data = reorderedData;
+
+    return resultDf;
+}
+
 std::vector<QString> DataFrame::operator[](QString columnName)
 {
     int columnIndex = getColumnIndex(columnName);

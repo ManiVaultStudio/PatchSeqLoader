@@ -284,30 +284,7 @@ void PatchSeqDataLoader::loadData()
     events().notifyDatasetDataDimensionsChanged(pointData);
 
     // Subset and reorder the metadata
-    std::vector<QString> cell_id_column_gexpr = geneExpressionDf["cell_id"];
-    std::vector<QString> cell_id_column_meta = metadata["cell_id"];
-
-    // Make a map out of meta column
-    std::unordered_map<QString, int> indexMap;
-    for (int i = 0; i < cell_id_column_meta.size(); i++)
-    {
-        indexMap[cell_id_column_meta[i]] = i;
-    }
-
-    // Find ordering
-    std::vector<int> ordering;
-    for (const QString& cell_id : cell_id_column_gexpr)
-    {
-        if (indexMap.find(cell_id) == indexMap.end())
-        {
-            qDebug() << "Failed to find cell ID: " << cell_id << " in metadata file.";
-        }
-        int index = indexMap[cell_id];
-        ordering.push_back(index);
-    }
-
-    // Subset and reorder metadata
-    metadata.reorder(ordering);
+    metadata = DataFrame::subsetAndReorderByColumn(metadata, geneExpressionDf, "cell_id", "cell_id");
 
     // Add cluster meta data
     std::vector<QString> treeCluster = metadata["tree_cluster"];
