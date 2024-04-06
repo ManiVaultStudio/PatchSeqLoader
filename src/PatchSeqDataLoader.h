@@ -1,5 +1,7 @@
 #pragma once
 
+#include "DataFrame.h"
+
 #include <actions/DatasetPickerAction.h>
 #include <actions/GroupAction.h>
 #include <actions/IntegralAction.h>
@@ -84,6 +86,9 @@ public:
     ~PatchSeqDataLoader(void) override;
 
     void init() override;
+
+    void addTaxonomyClustersForDf(DataFrame& df, DataFrame& metadata, DataFrame& taxonomyDf, QString name, mv::Dataset<mv::DatasetImpl> parent);
+    void createClusterData(std::vector<QString> stringList, QString dataName, mv::Dataset<mv::DatasetImpl> parent);
 
     void loadData() Q_DECL_OVERRIDE;
 };

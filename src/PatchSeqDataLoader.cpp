@@ -1,12 +1,16 @@
 #include "PatchSeqDataLoader.h"
 
-#include "DataFrame.h"
 #include "Taxonomy.h"
+#include "CellLoader.h"
 
 #include <PointData/PointData.h>
 #include <ClusterData/ClusterData.h>
+#include <TextData/TextData.h>
+#include <CellMorphologyData/CellMorphologyData.h>
+#include <CellMorphologyData/CellMorphology.h>
 
 #include <Set.h>
+#include <SelectionGroup.h>
 
 #include <QtCore>
 #include <QtDebug>
@@ -21,7 +25,7 @@
 #include <iostream>
 #include <algorithm>
 
-Q_PLUGIN_METADATA(IID "studio.manivault.SparseDataLoader")
+Q_PLUGIN_METADATA(IID "studio.manivault.PatchSeqDataLoader")
 
 using namespace mv;
 using namespace mv::gui;
@@ -196,6 +200,35 @@ namespace
         }
         return clusterData;
     }
+
+    std::unordered_map<unsigned int, unsigned int> computeLinkedData(DataFrame& leftDf, DataFrame& rightDf, QString columnNameLeft, QString columnNameRight)
+    {
+        std::vector<QString> columnLeft = leftDf[columnNameLeft];
+        std::vector<QString> columnRight = rightDf[columnNameRight];
+
+        // Make a map out of meta column
+        std::unordered_map<QString, int> indexMap;
+        for (int i = 0; i < columnRight.size(); i++)
+        {
+            indexMap[columnRight[i]] = i;
+        }
+
+        // Find mapping
+        std::unordered_map<unsigned int, unsigned int> mapping;
+        for (int i = 0; i < columnLeft.size(); i++)
+        {
+            const QString& cell_id = columnLeft[i];
+            if (indexMap.find(cell_id) == indexMap.end())
+            {
+                //qDebug() << "Failed to find cell ID: " << cell_id << " in metadata file.";
+                continue;
+            }
+            int index = indexMap[cell_id];
+            mapping[i] = index;
+        }
+
+        return mapping;
+    }
 }
 
 // =============================================================================
@@ -210,6 +243,70 @@ PatchSeqDataLoader::~PatchSeqDataLoader(void)
 void PatchSeqDataLoader::init()
 {
 
+}
+
+void PatchSeqDataLoader::addTaxonomyClustersForDf(DataFrame& df, DataFrame& metadata, DataFrame& taxonomyDf, QString name, mv::Dataset<mv::DatasetImpl> parent)
+{
+    std::vector<QString> treeCluster = metadata["tree_cluster"];
+
+    Dataset<Clusters> treeClusterData;
+    treeClusterData = mv::data().createDataset<Points>("Cluster", name, parent);
+
+    std::unordered_map<QString, std::vector<unsigned int>> clusterData = makeClustersFromList(treeCluster);
+
+    std::vector<QString> final_cluster_names = taxonomyDf["final cluster"];
+    std::vector<QString> final_cluster_colors = taxonomyDf["final cluster color"];
+
+    for (auto& kv : clusterData)
+    {
+        Cluster cluster;
+
+        cluster.setName(kv.first);
+
+        bool found = false;
+        for (int i = 0; i < final_cluster_names.size(); i++)
+        {
+            if (final_cluster_names[i] == kv.first)
+            {
+                cluster.setColor(final_cluster_colors[i]);
+                found = true;
+                qDebug() << "Found attributes in taxonomy CSV!";
+                break;
+            }
+        }
+        if (found == false)
+        {
+            qDebug() << "ERROR: Failed to find attributes in taxonomy CSV: " << kv.first;
+        }
+
+        cluster.setIndices(kv.second);
+
+        treeClusterData->addCluster(cluster);
+    }
+
+    mv::events().notifyDatasetDataChanged(treeClusterData);
+    mv::events().notifyDatasetDataDimensionsChanged(treeClusterData);
+}
+
+void PatchSeqDataLoader::createClusterData(std::vector<QString> stringList, QString dataName, mv::Dataset<mv::DatasetImpl> parent)
+{
+    Dataset<Clusters> clusterData = mv::data().createDataset<Points>("Cluster", dataName, parent);
+
+    std::unordered_map<QString, std::vector<unsigned int>> clusterMap = makeClustersFromList(stringList);
+
+    for (auto& kv : clusterMap)
+    {
+        Cluster cluster;
+
+        cluster.setName(kv.first);
+
+        cluster.setIndices(kv.second);
+
+        clusterData->addCluster(cluster);
+    }
+
+    mv::events().notifyDatasetDataChanged(clusterData);
+    mv::events().notifyDatasetDataDimensionsChanged(clusterData);
 }
 
 void PatchSeqDataLoader::loadData()
@@ -242,8 +339,6 @@ void PatchSeqDataLoader::loadData()
     qDebug() << morphoFilePath;
     qDebug() << metadataFilePath;
 
-    //const QString fileName = AskForFileName(tr("Metadata Files (*.csv)"));
-
     // Don't try to load a file if the dialog was cancelled or the file name is empty
     if (metadataFilePath.isNull() || metadataFilePath.isEmpty())
         return;
@@ -251,7 +346,7 @@ void PatchSeqDataLoader::loadData()
     qDebug() << "Loading taxonomy";
     Taxonomy taxonomy = Taxonomy::fromJsonFile();
     //taxonomy.printTree();
-
+    
     DataFrame taxonomyDf;
     readDataFrame(taxonomyDf, "D:/Dropbox/Julian/Patchseq/FinalHumanMTGclusterAnnotation_update.csv");
 
@@ -262,8 +357,6 @@ void PatchSeqDataLoader::loadData()
     readDataFrame(metadata, metadataFilePath);
 
     // Read gene expression file
-    //const QString gexprFileName = AskForFileName(tr("Gene Expression Files (*.csv)"));
-
     DataFrame geneExpressionDf;
     std::vector<float> geneExpressionMatrix;
     unsigned int numCols;
@@ -284,67 +377,12 @@ void PatchSeqDataLoader::loadData()
     events().notifyDatasetDataDimensionsChanged(pointData);
 
     // Subset and reorder the metadata
-    metadata = DataFrame::subsetAndReorderByColumn(metadata, geneExpressionDf, "cell_id", "cell_id");
+    DataFrame gexpr_metadata = DataFrame::subsetAndReorderByColumn(metadata, geneExpressionDf, "cell_id", "cell_id");
 
     // Add cluster meta data
-    std::vector<QString> treeCluster = metadata["tree_cluster"];
-    for (int i = 0; i < treeCluster.size(); i++)
-    {
-        //qDebug() << treeCluster[i];
-    }
-    std::cout << "NUM CLUSTERS LIST: " << treeCluster.size();
-
-    Dataset<Clusters> treeClusterData;
-    treeClusterData = mv::data().createDataset<Points>("Cluster", QFileInfo(gexprFilePath).baseName(), pointData);
-
-    std::unordered_map<QString, std::vector<unsigned int>> clusterData = makeClustersFromList(treeCluster);
-
-    std::vector<QString> final_cluster_names = taxonomyDf["final cluster"];
-    std::vector<QString> final_cluster_colors = taxonomyDf["final cluster color"];
-
-    for (auto& kv : clusterData) {
-        Cluster cluster;
-
-        cluster.setName(kv.first);
-        //cluster.setId(QString::fromStdString(dataContent.clusterIDs[i]));
-        TaxonomyAttributes* attr = taxonomy.findLeafWithAttribute("label", kv.first.toStdString());
-        if (attr != nullptr)
-        {
-            qDebug() << "Found attributes in taxonomy!";
-            std::string color = attr->_map["nodePar.col"];
-            cluster.setColor(QColor(QString::fromStdString(color)));
-        }
-        else
-        {
-            qDebug() << "ERROR: Failed to find attributes in taxonomy: " << kv.first;
-        }
-
-        bool found = false;
-        for (int i = 0; i < final_cluster_names.size(); i++)
-        {
-            if (final_cluster_names[i] == kv.first)
-            {
-                cluster.setColor(final_cluster_colors[i]);
-                found = true;
-                qDebug() << "Found attributes in taxonomy CSV!";
-                break;
-            }
-        }
-        if (found == false)
-        {
-            qDebug() << "ERROR: Failed to find attributes in taxonomy CSV: " << kv.first;
-        }
-
-        cluster.setIndices(kv.second);
-
-        treeClusterData->addCluster(cluster);
-    }
-
-    mv::events().notifyDatasetDataChanged(treeClusterData);
-    mv::events().notifyDatasetDataDimensionsChanged(treeClusterData);
+    addTaxonomyClustersForDf(geneExpressionDf, gexpr_metadata, taxonomyDf, QFileInfo(gexprFilePath).baseName(), pointData);
 
     // Load morphology data
-    //const QString morphoFileName = "D:/Dropbox/Julian/Patchseq/ProvidedData/allen_test_human_exc_simple_morpho.csv";
     DataFrame morphologyDf;
     std::vector<float> morphologyMatrix;
     unsigned int numMorphoCols;
@@ -359,56 +397,93 @@ void PatchSeqDataLoader::loadData()
     events().notifyDatasetDataChanged(morphoData);
     events().notifyDatasetDataDimensionsChanged(morphoData);
 
-    //for (std::vector<QString>& row : metadata)
+    // Subset and reorder the metadata
+    DataFrame morpho_metadata = DataFrame::subsetAndReorderByColumn(metadata, morphologyDf, "cell_id", "cell_id");
+
+    // Add cluster meta data
+    addTaxonomyClustersForDf(morphologyDf, morpho_metadata, taxonomyDf, QFileInfo(morphoFilePath).baseName(), morphoData);
+
+    //// Add linked selections between data
+    //std::unordered_map<unsigned int, unsigned int> linkedData = computeLinkedData(geneExpressionDf, morphologyDf, "cell_id", "cell_id");
+
+    //SelectionMap selectionMap;
+    //auto& mapping = selectionMap.getMap();
+
+    //for (auto kv = linkedData.begin(); kv != linkedData.end(); kv++)
     //{
-    //    qDebug() << row[1];
+    //    std::vector<unsigned int> a(1, kv->second);
+    //    mapping[kv->first] = a;
     //}
+    //pointData->getSelection()->addLinkedData(morphoData, selectionMap);
+    //qDebug() << "add linked data";
 
-    return;
 
-    //// Read the 
-    //std::ifstream file(fileName.toStdString(), std::ios::binary);
+    // Create text data for metadata columns
+    std::vector<QString> column = metadata["cell_id"];
+    Dataset<Text> metaColumnData;
+    metaColumnData = mv::data().createDataset<Text>("Text", "cell_id");
 
-    //if (file)
-    //{
-    //    size_t numRows;
-    //    file.read((char*)&numRows, sizeof(size_t));
+    metaColumnData->setData(column);
 
-    //    size_t numCols;
-    //    file.read((char*)&numCols, sizeof(size_t));
+    qDebug() << "Notify data changed";
+    events().notifyDatasetDataChanged(metaColumnData);
+    events().notifyDatasetDataDimensionsChanged(metaColumnData);
 
-    //    size_t numNonZero;
-    //    file.read((char*)&numNonZero, sizeof(size_t));
+    createClusterData(metadata["tree_cluster"], "tree_cluster", metaColumnData);
 
-    //    qDebug() << "Num rows:" << numRows;
-    //    qDebug() << "Num cols:" << numCols;
-    //    qDebug() << "Num nonzeros:" << numNonZero;
+    // Load morphology cells
+    Dataset<CellMorphologies> cellMorphoData = mv::data().createDataset<CellMorphologies>("Cell Morphology Data", "cell_morphology");
 
-    //    std::vector<size_t> rowPointers(numRows + 1);
-    //    std::vector<uint16_t> colIndices(numNonZero);
-    //    std::vector<uint16_t> values(numNonZero);
+    QDir morphologyDir(dir);
+    morphologyDir.cd("SWC_Upright");
 
-    //    file.read((char*)rowPointers.data(), sizeof(size_t) * rowPointers.size());
-    //    file.read((char*)colIndices.data(), sizeof(uint16_t) * colIndices.size());
-    //    file.read((char*)values.data(), sizeof(uint16_t) * values.size());
+    QStringList swcFiles = morphologyDir.entryList(QStringList() << "*.swc" << "*.SWC", QDir::Files);
 
-    //    file.close();
+    QStringList cellIds;
+    std::vector<CellMorphology> cellMorphologies(swcFiles.size());
 
-    //    Dataset<Points> pointData;
-    //    pointData = mv::data().createDataset<Points>("Points", QFileInfo(fileName).baseName());
+    for (int i = 0; i < cellMorphologies.size(); i++)
+    {
+        QString swcFile = swcFiles[i];
+        CellMorphology& cellMorphology = cellMorphologies[i];
 
-    //    pointData->setSparseData<uint16_t, uint16_t>(numRows, numCols, rowPointers, colIndices, values);
+        std::string fileContents;
+        loadCellContentsFromFile(morphologyDir.filePath(swcFile), fileContents);
+        //qDebug() << QString::fromStdString(fileContents);
 
-    //    qDebug() << "Notify data changed";
-    //    events().notifyDatasetDataChanged(pointData);
-    //    events().notifyDatasetDataDimensionsChanged(pointData);
-    //}
-    //else
-    //{
-    //    throw DataLoadException(fileName, "File was not found at location.");
-    //}
+        readCell(fileContents, cellMorphology);
 
-    //SparseMatrix<uint16_t, uint16_t> csr(numRows, numCols, numNonZero);
+        cellMorphology.center();
+        cellMorphology.rescale();
+
+        cellIds.append(QFileInfo(swcFile).baseName());
+    }
+
+    cellMorphoData->setCellIdentifiers(cellIds);
+    cellMorphoData->setData(cellMorphologies);
+
+    events().notifyDatasetDataChanged(cellMorphoData);
+    events().notifyDatasetDataDimensionsChanged(cellMorphoData);
+
+    // Make selection group
+    KeyBasedSelectionGroup selectionGroup;
+
+    // Gene expression data
+    BiMap gexprBiMap;
+    std::vector<uint32_t> gexprIndices(pointData->getNumPoints());
+    std::iota(gexprIndices.begin(), gexprIndices.end(), 0);
+    gexprBiMap.addKeyValuePairs(gexpr_metadata["cell_id"], gexprIndices);
+
+    // Morphology data
+    BiMap morphBiMap;
+    std::vector<uint32_t> morphoIndices(morphoData->getNumPoints());
+    std::iota(morphoIndices.begin(), morphoIndices.end(), 0);
+    morphBiMap.addKeyValuePairs(morpho_metadata["cell_id"], morphoIndices);
+
+    selectionGroup.addDataset(pointData, gexprBiMap);
+    selectionGroup.addDataset(morphoData, morphBiMap);
+
+    events().addSelectionGroup(selectionGroup);
 }
 
 QIcon PatchSeqDataLoaderFactory::getIcon(const QColor& color /*= Qt::black*/) const
