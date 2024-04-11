@@ -381,6 +381,7 @@ void PatchSeqDataLoader::loadData()
     QString ephysFilePath;
     QString morphoFilePath;
     QString metadataFilePath;
+    QString annotationFilePath;
     
     for (QString filePath : csvFiles)
     {
@@ -392,6 +393,8 @@ void PatchSeqDataLoader::loadData()
             morphoFilePath = dir.filePath(filePath);
         if (filePath.contains("metadata"))
             metadataFilePath = dir.filePath(filePath);
+        if (filePath.contains("annotation"))
+            annotationFilePath = dir.filePath(filePath);
 
         qDebug() << filePath;
     }
@@ -406,11 +409,11 @@ void PatchSeqDataLoader::loadData()
         return;
 
     qDebug() << "Loading taxonomy";
-    Taxonomy taxonomy = Taxonomy::fromJsonFile();
+    //Taxonomy taxonomy = Taxonomy::fromJsonFile();
     //taxonomy.printTree();
     
     DataFrame taxonomyDf;
-    readDataFrame(taxonomyDf, "D:/Dropbox/Julian/Patchseq/FinalHumanMTGclusterAnnotation_update.csv");
+    readDataFrame(taxonomyDf, annotationFilePath);
 
     qDebug() << "Loading CSV file: " << metadataFilePath;
 
