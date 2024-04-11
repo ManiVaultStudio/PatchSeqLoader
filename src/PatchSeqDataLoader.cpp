@@ -126,6 +126,68 @@ namespace
         std::cout << "Elapsed time: " << elapsed.count() << " s\n";
     }
 
+    void readPatchSeqDf(DataFrame& df, QString fileName, int numStringCols, std::vector<float>& matrix, unsigned int& numCols)
+    {
+        auto start = std::chrono::high_resolution_clock::now();
+        std::cout << "Starting read" << std::endl;
+
+        std::vector<QString> row(numStringCols);
+
+        QFile inputFile(fileName);
+        if (inputFile.open(QIODevice::ReadOnly))
+        {
+            QTextStream in(&inputFile);
+
+            // Read header
+            if (!in.atEnd())
+            {
+                QString line = in.readLine();
+
+                QStringList tokens = line.split(",");
+                numCols = (tokens.size() - numStringCols);
+
+                for (int i = 0; i < tokens.size(); i++)
+                {
+                    QString& token = tokens[i];
+                    token.replace("\"", "");
+                }
+
+                df.setHeaders(tokens);
+            }
+
+            std::vector<float> dataRow(numCols);
+            while (!in.atEnd())
+            {
+                QString line = in.readLine();
+
+                QStringList tokens = line.split(",");
+
+                for (int i = 0; i < numStringCols; i++)
+                {
+                    QString token = tokens[i];
+                    token.replace("\"", "");
+                    row[i] = token;
+                }
+
+                df.getData().push_back(row);
+
+                for (int col = 0; col < numCols; col++)
+                    dataRow[col] = tokens[col + numStringCols].toFloat();
+
+                matrix.insert(matrix.end(), dataRow.begin(), dataRow.end());
+            }
+            inputFile.close();
+        }
+        else
+        {
+            throw DataLoadException(fileName, "File was not found at location.");
+        }
+
+        auto finish = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = finish - start;
+        std::cout << "Elapsed time: " << elapsed.count() << " s\n";
+    }
+
     void readMorphologyDf(DataFrame& df, QString fileName, std::vector<float>& matrix, unsigned int& numCols)
     {
         auto start = std::chrono::high_resolution_clock::now();
@@ -376,11 +438,38 @@ void PatchSeqDataLoader::loadData()
     events().notifyDatasetDataChanged(pointData);
     events().notifyDatasetDataDimensionsChanged(pointData);
 
+    // Read electrophysiology file
+    DataFrame ephysDf;
+    std::vector<float> ephysMatrix;
+    unsigned int numEphysCols;
+    readPatchSeqDf(ephysDf, ephysFilePath, 2, ephysMatrix, numEphysCols);
+
+    for (int i = 0; i < std::min(20, (int)ephysDf.getHeaders().size()); i++)
+    {
+        qDebug() << ephysDf.getHeaders()[i];
+    }
+
+    Dataset<Points> ephysData = mv::data().createDataset<Points>("Points", QFileInfo(ephysFilePath).baseName());
+
+    std::vector<QString> ephysDimNames(ephysDf.getHeaders().begin() + 2, ephysDf.getHeaders().end());
+
+    ephysData->setData(ephysMatrix, numEphysCols);
+    ephysData->setDimensionNames(ephysDimNames);
+
+    events().notifyDatasetDataChanged(ephysData);
+    events().notifyDatasetDataDimensionsChanged(ephysData);
+
     // Subset and reorder the metadata
     DataFrame gexpr_metadata = DataFrame::subsetAndReorderByColumn(metadata, geneExpressionDf, "cell_id", "cell_id");
 
+    // Subset and reorder the metadata
+    DataFrame ephys_metadata = DataFrame::subsetAndReorderByColumn(metadata, ephysDf, "cell_id", "cell_id");
+
     // Add cluster meta data
     addTaxonomyClustersForDf(geneExpressionDf, gexpr_metadata, taxonomyDf, QFileInfo(gexprFilePath).baseName(), pointData);
+
+    // Add cluster meta data
+    addTaxonomyClustersForDf(ephysDf, ephys_metadata, taxonomyDf, QFileInfo(ephysFilePath).baseName(), ephysData);
 
     // Load morphology data
     DataFrame morphologyDf;
@@ -480,8 +569,14 @@ void PatchSeqDataLoader::loadData()
     std::iota(morphoIndices.begin(), morphoIndices.end(), 0);
     morphBiMap.addKeyValuePairs(morpho_metadata["cell_id"], morphoIndices);
 
+    // Ephys data
+    BiMap ephysBiMap;
+    std::vector<uint32_t> ephysIndices(ephysData->getNumPoints());
+    std::iota(ephysIndices.begin(), ephysIndices.end(), 0);
+    ephysBiMap.addKeyValuePairs(ephys_metadata["cell_id"], ephysIndices);
     selectionGroup.addDataset(pointData, gexprBiMap);
     selectionGroup.addDataset(morphoData, morphBiMap);
+    selectionGroup.addDataset(ephysData, ephysBiMap);
 
     events().addSelectionGroup(selectionGroup);
 }
