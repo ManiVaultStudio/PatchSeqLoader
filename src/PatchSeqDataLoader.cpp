@@ -435,7 +435,10 @@ void PatchSeqDataLoader::loadData()
     Dataset<Points> pointData;
     pointData = mv::data().createDataset<Points>("Points", QFileInfo(gexprFilePath).baseName());
 
+    std::vector<QString> gexprDimNames(geneExpressionDf.getHeaders().begin() + 3, geneExpressionDf.getHeaders().end());
+
     pointData->setData(geneExpressionMatrix, numCols);
+    pointData->setDimensionNames(gexprDimNames);
 
     qDebug() << "Notify data changed";
     events().notifyDatasetDataChanged(pointData);
@@ -483,7 +486,10 @@ void PatchSeqDataLoader::loadData()
     Dataset<Points> morphoData;
     morphoData = mv::data().createDataset<Points>("Points", QFileInfo(morphoFilePath).baseName());
 
+    std::vector<QString> morphDimNames(morphologyDf.getHeaders().begin() + 1, morphologyDf.getHeaders().end());
+
     morphoData->setData(morphologyMatrix, numMorphoCols);
+    morphoData->setDimensionNames(morphDimNames);
 
     qDebug() << "Notify data changed";
     events().notifyDatasetDataChanged(morphoData);
@@ -545,8 +551,8 @@ void PatchSeqDataLoader::loadData()
 
         readCell(fileContents, cellMorphology);
 
-        cellMorphology.center();
-        cellMorphology.rescale();
+        cellMorphology.findCentroid();
+        cellMorphology.findExtents();
 
         cellIds.append(QFileInfo(swcFile).baseName());
     }
@@ -577,9 +583,24 @@ void PatchSeqDataLoader::loadData()
     std::vector<uint32_t> ephysIndices(ephysData->getNumPoints());
     std::iota(ephysIndices.begin(), ephysIndices.end(), 0);
     ephysBiMap.addKeyValuePairs(ephys_metadata["cell_id"], ephysIndices);
+
+    // Cell ID data
+    BiMap cellIdBiMap;
+    std::vector<uint32_t> cellIdIndices(metaColumnData->getNumPoints());
+    std::iota(cellIdIndices.begin(), cellIdIndices.end(), 0);
+    cellIdBiMap.addKeyValuePairs(metaColumnData->getColumn("cell_id"), cellIdIndices);
+
+    auto b = metaColumnData->getColumn("cell_id");
+
+    for (int i = 0; i < b.size(); i++)
+    {
+        qDebug() << b[i];
+    }
+
     selectionGroup.addDataset(pointData, gexprBiMap);
     selectionGroup.addDataset(morphoData, morphBiMap);
     selectionGroup.addDataset(ephysData, ephysBiMap);
+    selectionGroup.addDataset(metaColumnData, cellIdBiMap);
 
     events().addSelectionGroup(selectionGroup);
 }
