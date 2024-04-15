@@ -1,6 +1,6 @@
 {
     "name" : "Patch-seq Data Loader",
     "menuName" : "CSV (.csv)",
-    "version" : "1",
+    "version" : "1.0",
     "dependencies" : ["Points", "Text"]
 }
