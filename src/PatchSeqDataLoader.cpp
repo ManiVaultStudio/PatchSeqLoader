@@ -586,21 +586,14 @@ void PatchSeqDataLoader::loadData()
 
     // Cell ID data
     BiMap cellIdBiMap;
-    std::vector<uint32_t> cellIdIndices(metaColumnData->getNumPoints());
+    std::vector<uint32_t> cellIdIndices(metaDataset->getNumRows());
     std::iota(cellIdIndices.begin(), cellIdIndices.end(), 0);
-    cellIdBiMap.addKeyValuePairs(metaColumnData->getColumn("cell_id"), cellIdIndices);
-
-    auto b = metaColumnData->getColumn("cell_id");
-
-    for (int i = 0; i < b.size(); i++)
-    {
-        qDebug() << b[i];
-    }
+    cellIdBiMap.addKeyValuePairs(metaDataset->getColumn("cell_id"), cellIdIndices);
 
     selectionGroup.addDataset(pointData, gexprBiMap);
     selectionGroup.addDataset(morphoData, morphBiMap);
     selectionGroup.addDataset(ephysData, ephysBiMap);
-    selectionGroup.addDataset(metaColumnData, cellIdBiMap);
+    selectionGroup.addDataset(metaDataset, cellIdBiMap);
 
     events().addSelectionGroup(selectionGroup);
 }
