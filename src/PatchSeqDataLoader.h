@@ -11,6 +11,8 @@
 
 #include <LoaderPlugin.h>
 
+#include <Task.h>
+
 #include <QDialog>
 
 using namespace mv::plugin;
@@ -82,7 +84,11 @@ class PatchSeqDataLoader : public LoaderPlugin
 {
     Q_OBJECT
 public:
-    PatchSeqDataLoader(const PluginFactory* factory) : LoaderPlugin(factory) { }
+    PatchSeqDataLoader(const PluginFactory* factory) :
+        LoaderPlugin(factory),
+        _task(this, "Loading patch-seq data", mv::Task::Status::Idle, true)
+    { }
+
     ~PatchSeqDataLoader(void) override;
 
     void init() override;
@@ -91,6 +97,9 @@ public:
     void createClusterData(std::vector<QString> stringList, QString dataName, mv::Dataset<mv::DatasetImpl> parent);
 
     void loadData() Q_DECL_OVERRIDE;
+
+private:
+    mv::ModalTask _task;
 };
 
 

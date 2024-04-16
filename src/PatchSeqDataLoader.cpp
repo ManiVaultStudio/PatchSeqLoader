@@ -3,6 +3,8 @@
 #include "Taxonomy.h"
 #include "CellLoader.h"
 
+#include "csv.h"
+
 #include <PointData/PointData.h>
 #include <ClusterData/ClusterData.h>
 #include <TextData/TextData.h>
@@ -65,7 +67,7 @@ namespace
         }
     }
 
-    void readGeneExpressionDf(DataFrame& df, QString fileName, std::vector<float>& geneExpressionMatrix, unsigned int& numCols)
+    void readGeneExpressionDf(DataFrame& df, QString fileName, std::vector<float>& geneExpressionMatrix, mv::ModalTask& task, unsigned int& numCols)
     {
         auto start = std::chrono::high_resolution_clock::now();
         std::cout << "Starting read" << std::endl;
@@ -94,26 +96,96 @@ namespace
             }
 
             std::vector<float> geneExpressionRow(numCols);
-            while (!in.atEnd())
+
+            io::LineReader fin(fileName.toStdString());
+
+            char* token;
+
+            bool skippedHeader = false;
+
+            int lineCount = 0;
+            task.setSubtasks(100);
+
+            while (char* line = fin.next_line())
             {
-                QString line = in.readLine();
+                if (!skippedHeader) { skippedHeader = true; continue; }
+                //qDebug() << line;
+                //qDebug() << "new line";
+                task.setSubtaskStarted(lineCount / 18);
 
-                QStringList tokens = line.split(",");
+                int colIndex = 0;
+                /* get the first three tokens */
+                token = strtok(line, ",");
+                token = strtok(NULL, ",");
+                token = strtok(NULL, ",");
+                token = strtok(NULL, ",");
 
-                for (int i = 0; i < 3; i++)
-                {
-                    QString token = tokens[i];
-                    token.replace("\"", "");
-                    row[i] = token;
+                /* walk through other tokens */
+                while (token != NULL) {
+                    //printf(" %s\n", token);
+
+                    geneExpressionRow[colIndex] = atof(token);
+                    colIndex++;
+
+                    token = strtok(NULL, ",");
+
+                    //qDebug() << colIndex;
                 }
-
-                df.getData().push_back(row);
-
-                for (int col = 0; col < numCols; col++)
-                    geneExpressionRow[col] = tokens[col+3].toFloat();
-
                 geneExpressionMatrix.insert(geneExpressionMatrix.end(), geneExpressionRow.begin(), geneExpressionRow.end());
+
+                task.setSubtaskFinished(lineCount / 18);
+
+                QApplication::processEvents();
+
+                lineCount++;
             }
+
+            qDebug() << "Done";
+
+            //io::CSVReader in(fileName);
+            //in.read_header(io::ignore_extra_column, "vendor", "size", "speed");
+            //std::string vendor; int size; double speed;
+            //while (in.read_row(vendor, size, speed)) {
+            //    // do stuff with the data
+            //}
+
+
+            //int lineCount = 0;
+
+            //task.setSubtasks(100);
+
+            //while (!in.atEnd())
+            //{
+            //    QString line = in.readLine();
+
+            //    lineCount++;
+
+            //    if (lineCount > 1800) lineCount = 1800;
+
+            //    //task.setSubtaskStarted()
+
+            //    task.setSubtaskStarted(lineCount / 18);
+
+            //    QStringList tokens = line.split(",");
+
+            //    for (int i = 0; i < 3; i++)
+            //    {
+            //        QString token = tokens[i];
+            //        token.replace("\"", "");
+            //        row[i] = token;
+            //    }
+
+            //    df.getData().push_back(row);
+
+            //    for (int col = 0; col < numCols; col++)
+            //        geneExpressionRow[col] = tokens[col+3].toFloat();
+
+            //    geneExpressionMatrix.insert(geneExpressionMatrix.end(), geneExpressionRow.begin(), geneExpressionRow.end());
+
+            //    task.setSubtaskFinished(lineCount / 18);
+
+            //    QApplication::processEvents();
+            //}
             inputFile.close();
         }
         else
@@ -421,11 +493,16 @@ void PatchSeqDataLoader::loadData()
     DataFrame metadata;
     readDataFrame(metadata, metadataFilePath);
 
+    _task.setEnabled(true);
+    _task.setRunning();
+    QCoreApplication::processEvents();
     // Read gene expression file
     DataFrame geneExpressionDf;
     std::vector<float> geneExpressionMatrix;
     unsigned int numCols;
-    readGeneExpressionDf(geneExpressionDf, gexprFilePath, geneExpressionMatrix, numCols);
+    readGeneExpressionDf(geneExpressionDf, gexprFilePath, geneExpressionMatrix, _task, numCols);
+
+    _task.setFinished();
 
     for (int i = 0; i < std::min(20, (int) geneExpressionDf.getHeaders().size()); i++)
     {
