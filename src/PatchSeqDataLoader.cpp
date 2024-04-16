@@ -496,6 +496,7 @@ void PatchSeqDataLoader::loadData()
     _task.setEnabled(true);
     _task.setRunning();
     QCoreApplication::processEvents();
+
     // Read gene expression file
     DataFrame geneExpressionDf;
     std::vector<float> geneExpressionMatrix;
@@ -592,20 +593,30 @@ void PatchSeqDataLoader::loadData()
     //pointData->getSelection()->addLinkedData(morphoData, selectionMap);
     //qDebug() << "add linked data";
 
-
+    qDebug() << ">>>>>>>>>>>>>> Create metadata";
     // Create text data for metadata columns
-    std::vector<QString> column = metadata["cell_id"];
-    Dataset<Text> metaColumnData;
-    metaColumnData = mv::data().createDataset<Text>("Text", "cell_id");
+    std::vector<QString> cellIdColumn = metadata["cell_id"];
+    std::vector<QString> cellNameColumn = metadata["cell_name_label"];
+    std::vector<QString> treeSubclassColumn = metadata["tree_subclass"];
+    std::vector<QString> treeClusterColumn = metadata["tree_cluster"];
+    std::vector<QString> paradigmColumn = metadata["paradigm"];
 
-    metaColumnData->setData(column);
+    Dataset<Text> metaDataset;
+    metaDataset = mv::data().createDataset<Text>("Text", "cell_metadata");
+
+    metaDataset->addColumn("cell_id", cellIdColumn);
+    metaDataset->addColumn("cell_name_label", cellNameColumn);
+    metaDataset->addColumn("tree_subclass", treeSubclassColumn);
+    metaDataset->addColumn("tree_cluster", treeClusterColumn);
+    metaDataset->addColumn("paradigm", paradigmColumn);
 
     qDebug() << "Notify data changed";
-    events().notifyDatasetDataChanged(metaColumnData);
-    events().notifyDatasetDataDimensionsChanged(metaColumnData);
+    events().notifyDatasetDataChanged(metaDataset);
+    events().notifyDatasetDataDimensionsChanged(metaDataset);
 
-    createClusterData(metadata["tree_cluster"], "tree_cluster", metaColumnData);
+    createClusterData(metadata["tree_cluster"], "tree_cluster", metaDataset);
 
+    qDebug() << ">>>>>>>>>>>>>> Loading morphology cells";
     // Load morphology cells
     Dataset<CellMorphologies> cellMorphoData = mv::data().createDataset<CellMorphologies>("Cell Morphology Data", "cell_morphology");
 
@@ -617,6 +628,7 @@ void PatchSeqDataLoader::loadData()
     QStringList cellIds;
     std::vector<CellMorphology> cellMorphologies(swcFiles.size());
 
+    auto start = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < cellMorphologies.size(); i++)
     {
         QString swcFile = swcFiles[i];
@@ -633,6 +645,9 @@ void PatchSeqDataLoader::loadData()
 
         cellIds.append(QFileInfo(swcFile).baseName());
     }
+    auto finish = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = finish - start;
+    std::cout << "Loading Morphology elapsed time: " << elapsed.count() << " s\n";
 
     cellMorphoData->setCellIdentifiers(cellIds);
     cellMorphoData->setData(cellMorphologies);
@@ -640,6 +655,7 @@ void PatchSeqDataLoader::loadData()
     events().notifyDatasetDataChanged(cellMorphoData);
     events().notifyDatasetDataDimensionsChanged(cellMorphoData);
 
+    qDebug() << ">>>>>>>>>>>>>> Making selection group";
     // Make selection group
     KeyBasedSelectionGroup selectionGroup;
 

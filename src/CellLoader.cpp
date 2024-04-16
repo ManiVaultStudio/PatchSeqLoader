@@ -14,7 +14,7 @@
 void loadCellContentsFromFile(QString filePath, std::string& result)
 {
     std::ifstream file(filePath.toStdString());
-    std::cout << file.is_open() << std::endl;
+
     if (file) {
         std::ostringstream ss;
         ss << file.rdbuf(); // reading data
