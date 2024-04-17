@@ -15,6 +15,10 @@ if(NOT DEFINED MV_INSTALL_DIR)
 endif()
 file(TO_CMAKE_PATH ${MV_INSTALL_DIR} MV_INSTALL_DIR)
 
+if(NOT DEFINED MV_CMD_INSTALL_DIR) 
+    set(MV_CMD_INSTALL_DIR ${MV_INSTALL_DIR} CACHE PATH "Directory where CellMorphologyData is installed")
+endif()
+
 # -----------------------------------------------------------------------------
 # CMake Options
 # -----------------------------------------------------------------------------
@@ -74,6 +78,7 @@ target_sources(${PROJECT_NAME} PRIVATE ${LOADER_MOC})
 # Target include directories
 # -----------------------------------------------------------------------------
 target_include_directories(${PROJECT_NAME} PRIVATE "${MV_INSTALL_DIR}/$<CONFIGURATION>/include/")
+target_include_directories(${PROJECT_NAME} PRIVATE "${MV_CMD_INSTALL_DIR}/$<CONFIGURATION>/include/")
 
 # -----------------------------------------------------------------------------
 # Target properties
@@ -85,13 +90,14 @@ target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 # -----------------------------------------------------------------------------
 set(MV_LINK_PATH "${MV_INSTALL_DIR}/$<CONFIGURATION>/lib")
 set(PLUGIN_LINK_PATH "${MV_INSTALL_DIR}/$<CONFIGURATION>/$<IF:$<CXX_COMPILER_ID:MSVC>,lib,Plugins>")
+set(CMDPLUGIN_LINK_PATH "${MV_CMD_INSTALL_DIR}/$<CONFIGURATION>/$<IF:$<CXX_COMPILER_ID:MSVC>,lib,Plugins>")
 set(MV_LINK_SUFFIX $<IF:$<CXX_COMPILER_ID:MSVC>,${CMAKE_LINK_LIBRARY_SUFFIX},${CMAKE_SHARED_LIBRARY_SUFFIX}>)
 
 set(MV_LINK_LIBRARY "${MV_LINK_PATH}/${CMAKE_SHARED_LIBRARY_PREFIX}MV_Public${MV_LINK_SUFFIX}")
 set(POINTDATA_LINK_LIBRARY "${PLUGIN_LINK_PATH}/${CMAKE_SHARED_LIBRARY_PREFIX}PointData${MV_LINK_SUFFIX}")
 set(CLUSTERDATA_LINK_LIBRARY "${PLUGIN_LINK_PATH}/${CMAKE_SHARED_LIBRARY_PREFIX}ClusterData${MV_LINK_SUFFIX}")
 set(TEXTDATA_LINK_LIBRARY "${PLUGIN_LINK_PATH}/${CMAKE_SHARED_LIBRARY_PREFIX}TextData${MV_LINK_SUFFIX}")
-set(CELL_MORPHOLOGY_DATA_LINK_LIBRARY "${PLUGIN_LINK_PATH}/${CMAKE_SHARED_LIBRARY_PREFIX}CellMorphologyData${MV_LINK_SUFFIX}")
+set(CELL_MORPHOLOGY_DATA_LINK_LIBRARY "${CMDPLUGIN_LINK_PATH}/${CMAKE_SHARED_LIBRARY_PREFIX}CellMorphologyData${MV_LINK_SUFFIX}")
 
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets)
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::WebEngineWidgets)
