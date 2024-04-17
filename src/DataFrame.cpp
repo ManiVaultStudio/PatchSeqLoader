@@ -2,6 +2,8 @@
 
 #include <QDebug>
 
+#include <unordered_map>
+
 DataFrame::DataFrame()
 {
 
