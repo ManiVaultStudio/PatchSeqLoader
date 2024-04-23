@@ -610,6 +610,44 @@ void PatchSeqDataLoader::loadData()
     metaDataset->addColumn("tree_cluster", treeClusterColumn);
     metaDataset->addColumn("paradigm", paradigmColumn);
 
+    // Take columns from ephys and morpho data and order them correctly, filling in missing data
+    BiMap metadataBiMap;
+    std::vector<uint32_t> metaCellIdIndices(metadata.numRows());
+    std::iota(metaCellIdIndices.begin(), metaCellIdIndices.end(), 0);
+    metadataBiMap.addKeyValuePairs(metadata["cell_id"], metaCellIdIndices);
+
+    std::vector<QString> ephysCellIdColumn = ephys_metadata["cell_id"];
+    std::vector<uint32_t> ephysToMetaIndices = metadataBiMap.getValuesByKeys(ephysCellIdColumn);
+
+    std::vector<QString> morphoCellIdColumn = morpho_metadata["cell_id"];
+    std::vector<uint32_t> morphoToMetaIndices = metadataBiMap.getValuesByKeys(morphoCellIdColumn);
+
+    for (int d = 0; d < ephysData->getNumDimensions(); d++)
+    {
+        std::vector<QString> column(metadata.numRows(), "?");
+        QString dimName = ephysData->getDimensionNames()[d];
+
+        for (size_t i = 0; i < ephysToMetaIndices.size(); i++)
+        {
+            uint32_t row = ephysToMetaIndices[i];
+            column[row] = QString::number(ephysData->getValueAt(i * ephysData->getNumDimensions() + d));
+        }
+        metaDataset->addColumn(dimName, column);
+    }
+
+    for (int d = 0; d < morphoData->getNumDimensions(); d++)
+    {
+        std::vector<QString> column(metadata.numRows(), "?");
+        QString dimName = morphoData->getDimensionNames()[d];
+
+        for (size_t i = 0; i < morphoToMetaIndices.size(); i++)
+        {
+            uint32_t row = morphoToMetaIndices[i];
+            column[row] = QString::number(morphoData->getValueAt(i * morphoData->getNumDimensions() + d));
+        }
+        metaDataset->addColumn(dimName, column);
+    }
+
     qDebug() << "Notify data changed";
     events().notifyDatasetDataChanged(metaDataset);
     events().notifyDatasetDataDimensionsChanged(metaDataset);
