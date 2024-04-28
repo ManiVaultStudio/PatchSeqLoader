@@ -2,6 +2,7 @@
 
 #include "Taxonomy.h"
 #include "CellLoader.h"
+#include "FeatureNames.h"
 
 #include "csv.h"
 
@@ -594,21 +595,24 @@ void PatchSeqDataLoader::loadData()
     //qDebug() << "add linked data";
 
     qDebug() << ">>>>>>>>>>>>>> Create metadata";
-    // Create text data for metadata columns
-    std::vector<QString> cellIdColumn = metadata["cell_id"];
-    std::vector<QString> cellNameColumn = metadata["cell_name_label"];
-    std::vector<QString> treeSubclassColumn = metadata["tree_subclass"];
-    std::vector<QString> treeClusterColumn = metadata["tree_cluster"];
-    std::vector<QString> paradigmColumn = metadata["paradigm"];
 
     Dataset<Text> metaDataset;
     metaDataset = mv::data().createDataset<Text>("Text", "cell_metadata");
 
-    metaDataset->addColumn("cell_id", cellIdColumn);
-    metaDataset->addColumn("cell_name_label", cellNameColumn);
-    metaDataset->addColumn("tree_subclass", treeSubclassColumn);
-    metaDataset->addColumn("tree_cluster", treeClusterColumn);
-    metaDataset->addColumn("paradigm", paradigmColumn);
+    metaDataset->setProperty("PatchSeqType", "Metadata");
+
+    for (int i = 0; i < metadata.getHeaders().size(); i++)
+    {
+        const QString& header = metadata.getHeaders()[i];
+
+        // Get a proper name if possible
+        QString properHeaderName = header;
+        if (properFeatureNames.find(header) != properFeatureNames.end())
+            properHeaderName = properFeatureNames[header];
+
+        std::vector<QString> column = metadata[header];
+        metaDataset->addColumn(properHeaderName, column);
+    }
 
     // Take columns from ephys and morpho data and order them correctly, filling in missing data
     BiMap metadataBiMap;
@@ -627,12 +631,17 @@ void PatchSeqDataLoader::loadData()
         std::vector<QString> column(metadata.numRows(), "?");
         QString dimName = ephysData->getDimensionNames()[d];
 
+        // Get a proper name if possible
+        QString properHeaderName = dimName;
+        if (properFeatureNames.find(dimName) != properFeatureNames.end())
+            properHeaderName = properFeatureNames[dimName];
+
         for (size_t i = 0; i < ephysToMetaIndices.size(); i++)
         {
             uint32_t row = ephysToMetaIndices[i];
             column[row] = QString::number(ephysData->getValueAt(i * ephysData->getNumDimensions() + d));
         }
-        metaDataset->addColumn(dimName, column);
+        metaDataset->addColumn(properHeaderName, column);
     }
 
     for (int d = 0; d < morphoData->getNumDimensions(); d++)
@@ -640,12 +649,17 @@ void PatchSeqDataLoader::loadData()
         std::vector<QString> column(metadata.numRows(), "?");
         QString dimName = morphoData->getDimensionNames()[d];
 
+        // Get a proper name if possible
+        QString properHeaderName = dimName;
+        if (properFeatureNames.find(dimName) != properFeatureNames.end())
+            properHeaderName = properFeatureNames[dimName];
+
         for (size_t i = 0; i < morphoToMetaIndices.size(); i++)
         {
             uint32_t row = morphoToMetaIndices[i];
             column[row] = QString::number(morphoData->getValueAt(i * morphoData->getNumDimensions() + d));
         }
-        metaDataset->addColumn(dimName, column);
+        metaDataset->addColumn(properHeaderName, column);
     }
 
     qDebug() << "Notify data changed";
@@ -719,7 +733,7 @@ void PatchSeqDataLoader::loadData()
     BiMap cellIdBiMap;
     std::vector<uint32_t> cellIdIndices(metaDataset->getNumRows());
     std::iota(cellIdIndices.begin(), cellIdIndices.end(), 0);
-    cellIdBiMap.addKeyValuePairs(metaDataset->getColumn("cell_id"), cellIdIndices);
+    cellIdBiMap.addKeyValuePairs(metadata["cell_id"], cellIdIndices);
 
     selectionGroup.addDataset(pointData, gexprBiMap);
     selectionGroup.addDataset(morphoData, morphBiMap);

@@ -45,6 +45,7 @@ set(SOURCES
     src/Taxonomy.cpp
     src/CellLoader.h
     src/CellLoader.cpp
+    src/FeatureNames.h
     src/json.hpp
 )
 
