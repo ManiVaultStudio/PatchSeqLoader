@@ -5,6 +5,17 @@
 #include <vector>
 
 static std::unordered_map<QString, QString> properFeatureNames = {
+    {"Morphology?", "Morphology Available"},
+    {"has ephys", "Ephys Available"},
+    {"marker_sum_norm_label", "Marker Sum Norm"},
+    {"Norm_Marker_Sum.0.4_label", "Norm Marker Sum 0.4"},
+    {"tree_class", "Class"},
+    {"age_label", "Age"},
+    {"gender_label", "Gender"},
+    {"roi_label", "ROI"},
+    {"structure", "Structure"},
+    {"lobe", "Lobe"},
+    {"medical_conditions_label", "Medical Conditions"},
     {"input_resistance_ss", "Input Resistance SS"},
     {"downstroke_short_square", "Downstroke Short Sqr"},
     {"apical_dendrite_soma_percentile_y", "Soma Percentile Y (AD)"},
