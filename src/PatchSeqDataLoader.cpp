@@ -597,7 +597,7 @@ void PatchSeqDataLoader::loadData()
     qDebug() << ">>>>>>>>>>>>>> Create metadata";
 
     Dataset<Text> metaDataset;
-    metaDataset = mv::data().createDataset<Text>("Text", "cell_metadata");
+    metaDataset = mv::data().createDataset<Text>("Text", "cell_metadata", mv::Dataset<DatasetImpl>(), "", false);
 
     metaDataset->setProperty("PatchSeqType", "Metadata");
 
@@ -663,6 +663,7 @@ void PatchSeqDataLoader::loadData()
     }
 
     qDebug() << "Notify data changed";
+    events().notifyDatasetAdded(metaDataset);
     events().notifyDatasetDataChanged(metaDataset);
     events().notifyDatasetDataDimensionsChanged(metaDataset);
 
