@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DataFrame.h"
+#include "PatchSeqFilePaths.h"
 
 #include <actions/DatasetPickerAction.h>
 #include <actions/GroupAction.h>
@@ -10,6 +11,9 @@
 #include <actions/TriggerAction.h>
 
 #include <LoaderPlugin.h>
+#include <PointData/PointData.h>
+#include <ClusterData/ClusterData.h>
+#include <TextData/TextData.h>
 
 #include <Task.h>
 
@@ -76,6 +80,7 @@ protected:
     mv::gui::GroupAction             _groupAction;                   /** Group action */
 };
 
+
 // =============================================================================
 // View
 // =============================================================================
@@ -99,6 +104,26 @@ public:
     void loadData() Q_DECL_OVERRIDE;
 
 private:
+    void loadGeneExpressionData(QString filePath, const DataFrame& metadata);
+    void loadEphysData(QString filePath, const DataFrame& metadata);
+    void loadMorphologyData(QString filePath, const DataFrame& metadata);
+    void loadMorphologyCells(QDir dir);
+private:
+    DataFrame _taxonomyDf;
+
+    // Gene expressions
+    DataFrame _geneExpressionDf;
+    Dataset<Points> _geneExpressionData;
+
+    // Electrophysiology
+    DataFrame _ephysDf;
+    Dataset<Points> _ephysData;
+
+    // Morphology
+    DataFrame _morphologyDf;
+    Dataset<Points> _morphoData;
+    DataFrame _morphoMetadata;
+
     mv::ModalTask _task;
 };
 

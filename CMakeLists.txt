@@ -46,6 +46,8 @@ set(SOURCES
     src/CellLoader.h
     src/CellLoader.cpp
     src/FeatureNames.h
+    src/PatchSeqFilePaths.h
+    src/PatchSeqFilePaths.cpp
     src/json.hpp
 )
 

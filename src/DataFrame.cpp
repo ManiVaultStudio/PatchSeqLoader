@@ -67,7 +67,7 @@ void DataFrame::subsetAndReorderAccordingTo(DataFrame& rightDf, QString columnNa
     {
         if (indexMap.find(cell_id) == indexMap.end())
         {
-            qDebug() << "Failed to find cell ID: " << cell_id << " in metadata file.";
+            qDebug() << "[subsetAndReorderAccordingTo] Failed to find cell ID: " << cell_id << " in metadata file.";
         }
         int index = indexMap[cell_id];
         ordering.push_back(index);
@@ -77,7 +77,7 @@ void DataFrame::subsetAndReorderAccordingTo(DataFrame& rightDf, QString columnNa
     reorder(ordering);
 }
 
-DataFrame DataFrame::subsetAndReorderByColumn(DataFrame& leftDf, DataFrame& rightDf, QString columnNameLeft, QString columnNameRight)
+DataFrame DataFrame::subsetAndReorderByColumn(const DataFrame& leftDf, DataFrame& rightDf, QString columnNameLeft, QString columnNameRight)
 {
     std::vector<QString> columnRight = rightDf[columnNameRight];
     std::vector<QString> columnLeft = leftDf[columnNameLeft];
@@ -95,7 +95,7 @@ DataFrame DataFrame::subsetAndReorderByColumn(DataFrame& leftDf, DataFrame& righ
     {
         if (indexMap.find(cell_id) == indexMap.end())
         {
-            qDebug() << "Failed to find cell ID: " << cell_id << " in metadata file.";
+            qDebug() << "[subsetAndReorderByColumn] Failed to find cell ID: " << cell_id << " in metadata file.";
         }
         int index = indexMap[cell_id];
         ordering.push_back(index);
@@ -116,7 +116,7 @@ DataFrame DataFrame::subsetAndReorderByColumn(DataFrame& leftDf, DataFrame& righ
     return resultDf;
 }
 
-std::vector<QString> DataFrame::operator[](QString columnName)
+std::vector<QString> DataFrame::operator[](QString columnName) const
 {
     int columnIndex = getColumnIndex(columnName);
 
