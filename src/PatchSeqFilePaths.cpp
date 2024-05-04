@@ -18,19 +18,12 @@ void PatchSeqFilePaths::locateFilePaths(QDir dir)
             morphoFilePath = dir.filePath(filePath);
         if (filePath.contains("metadata"))
             metadataFilePath = dir.filePath(filePath);
-        if (filePath.contains("annotation"))
-            annotationFilePath = dir.filePath(filePath);
     }
 
     qDebug() << "Located gene expression file: " << gexprFilePath;
     qDebug() << "Located electrophysiology file: " << ephysFilePath;
     qDebug() << "Located morphology data file: " << morphoFilePath;
     qDebug() << "Located metadata file: " << metadataFilePath;
-    qDebug() << "Located annotation file: " << annotationFilePath;
-
-    // Don't try to load a file if the dialog was cancelled or the file name is empty
-    if (metadataFilePath.isNull() || metadataFilePath.isEmpty())
-        return;
 }
 
 bool PatchSeqFilePaths::allFilesLocated()
@@ -43,7 +36,6 @@ bool PatchSeqFilePaths::allFilesLocated()
         return false;
     if (metadataFilePath.isNull() || metadataFilePath.isEmpty())
         return false;
-    if (annotationFilePath.isNull() || annotationFilePath.isEmpty())
-        return false;
+
     return true;
 }

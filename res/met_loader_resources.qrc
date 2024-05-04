@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="met_loader">
+        <file>hodge_taxonomy.csv</file>
+    </qresource>
+</RCC>

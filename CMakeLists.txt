@@ -35,7 +35,7 @@ find_package(Qt6 COMPONENTS Widgets WebEngineWidgets REQUIRED)
 # -----------------------------------------------------------------------------
 # Source files
 # -----------------------------------------------------------------------------
-set(SOURCES
+set(PLUGIN_SOURCES
     src/PatchSeqDataLoader.h
     src/PatchSeqDataLoader.cpp
     src/PatchSeqDataLoader.json
@@ -51,16 +51,21 @@ set(SOURCES
     src/json.hpp
 )
 
+set(QRESOURCES
+    res/met_loader_resources.qrc
+)
+QT6_ADD_RESOURCES(RESOURCE_FILES ${QRESOURCES})
+
 set(PLUGIN_MOC_HEADERS
     src/PatchSeqDataLoader.h
 )
 
-source_group( Plugin FILES ${SOURCES})
+source_group( Plugin FILES ${PLUGIN_SOURCES})
 
 # -----------------------------------------------------------------------------
 # CMake Target
 # -----------------------------------------------------------------------------
-add_library(${PROJECT_NAME} SHARED ${SOURCES})
+add_library(${PROJECT_NAME} SHARED ${PLUGIN_SOURCES} ${RESOURCE_FILES})
 
 qt_wrap_cpp(LOADER_MOC ${PLUGIN_MOC_HEADERS} TARGET ${PROJECT_NAME})
 target_sources(${PROJECT_NAME} PRIVATE ${LOADER_MOC})
@@ -117,6 +122,6 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 # -----------------------------------------------------------------------------
 # Automatically set the debug environment (command + working directory) for MSVC
 if(MSVC)
-    set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY  $<IF:$<CONFIG:DEBUG>,${MV_INSTALL_DIR}/debug,${MV_INSTALL_DIR}/release>)
-    set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_COMMAND $<IF:$<CONFIG:DEBUG>,"${MV_INSTALL_DIR}/debug/ManiVault Studio.exe","${MV_INSTALL_DIR}/release/ManiVault Studio.exe">)
+    set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY $<IF:$<CONFIG:DEBUG>,${MV_INSTALL_DIR}/debug,${MV_INSTALL_DIR}/release>)
+    set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_COMMAND $<IF:$<CONFIG:DEBUG>,${MV_INSTALL_DIR}/debug/ManiVault\ Studio.exe,${MV_INSTALL_DIR}/release/ManiVault\ Studio.exe>)
 endif()

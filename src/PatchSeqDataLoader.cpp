@@ -36,35 +36,36 @@ namespace
 {
     void readDataFrame(DataFrame& df, QString fileName)
     {
-        std::ifstream file(fileName.toStdString());
+        QFile file(fileName);
 
         bool header = true;
-        if (file)
-        {
-            std::string line;
-            while (std::getline(file, line))
-            {
-                QString qline = QString::fromStdString(line);
-
-                QStringList tokens = qline.split(",");
-                if (header)
-                {
-                    df.setHeaders(tokens);
-                    header = false;
-                    continue;
-                }
-
-                std::vector<QString> row(tokens.size());
-                for (int i = 0; i < tokens.size(); i++)
-                    row[i] = tokens[i];
-                
-                df.getData().push_back(row);
-            }
-        }
-        else
+        if (!file.open(QIODevice::ReadOnly))
         {
             throw DataLoadException(fileName, "File was not found at location.");
         }
+
+        QTextStream in(&file);
+
+        while (!in.atEnd())
+        {
+            QString line = in.readLine();
+
+            QStringList tokens = line.split(",");
+            if (header)
+            {
+                df.setHeaders(tokens);
+                header = false;
+                continue;
+            }
+
+            std::vector<QString> row(tokens.size());
+            for (int i = 0; i < tokens.size(); i++)
+                row[i] = tokens[i];
+                
+            df.getData().push_back(row);
+        }
+
+        file.close();
     }
 
     void printFirstFewDimensionsOfDataFrame(const DataFrame& df)
@@ -422,6 +423,8 @@ void PatchSeqDataLoader::createClusterData(std::vector<QString> stringList, QStr
 
 void PatchSeqDataLoader::loadData()
 {
+    Q_INIT_RESOURCE(met_loader_resources);
+
     QDir dir = QFileDialog::getExistingDirectory(nullptr, tr("Open Directory"),
         "/home", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
@@ -439,7 +442,7 @@ void PatchSeqDataLoader::loadData()
     qDebug() << "Reading taxonomy annotations from file..";
     //Taxonomy taxonomy = Taxonomy::fromJsonFile();
     //taxonomy.printTree();
-    readDataFrame(_taxonomyDf, filePaths.annotationFilePath);
+    readDataFrame(_taxonomyDf, ":met_loader/hodge_taxonomy.csv");
 
     qDebug() << "Loading CSV file: " << filePaths.metadataFilePath;
 
@@ -625,14 +628,13 @@ void PatchSeqDataLoader::loadEphysData(QString filePath, const DataFrame& metada
 void PatchSeqDataLoader::loadMorphologyData(QString filePath, const DataFrame& metadata)
 {
     // Load morphology data
-    DataFrame morphologyDf;
     std::vector<float> morphologyMatrix;
     unsigned int numMorphoCols;
-    readMorphologyDf(morphologyDf, filePath, morphologyMatrix, numMorphoCols);
+    readMorphologyDf(_morphologyDf, filePath, morphologyMatrix, numMorphoCols);
 
     _morphoData = mv::data().createDataset<Points>("Points", QFileInfo(filePath).baseName());
 
-    std::vector<QString> morphDimNames(morphologyDf.getHeaders().begin() + 1, morphologyDf.getHeaders().end());
+    std::vector<QString> morphDimNames(_morphologyDf.getHeaders().begin() + 1, _morphologyDf.getHeaders().end());
 
     _morphoData->setData(morphologyMatrix, numMorphoCols);
     _morphoData->setDimensionNames(morphDimNames);
@@ -641,10 +643,10 @@ void PatchSeqDataLoader::loadMorphologyData(QString filePath, const DataFrame& m
     events().notifyDatasetDataDimensionsChanged(_morphoData);
 
     // Subset and reorder the metadata
-    _morphoMetadata = DataFrame::subsetAndReorderByColumn(metadata, morphologyDf, CELL_ID_TAG, CELL_ID_TAG);
+    _morphoMetadata = DataFrame::subsetAndReorderByColumn(metadata, _morphologyDf, CELL_ID_TAG, CELL_ID_TAG);
 
     // Add cluster meta data
-    addTaxonomyClustersForDf(morphologyDf, _morphoMetadata, _taxonomyDf, QFileInfo(filePath).baseName(), _morphoData);
+    addTaxonomyClustersForDf(_morphologyDf, _morphoMetadata, _taxonomyDf, QFileInfo(filePath).baseName(), _morphoData);
 }
 
 void PatchSeqDataLoader::loadMorphologyCells(QDir dir)
