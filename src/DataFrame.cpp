@@ -29,6 +29,11 @@ std::vector<std::vector<QString>>& DataFrame::getData()
     return _data;
 }
 
+void DataFrame::removeRow(int rowIndex)
+{
+    _data.erase(_data.begin() + rowIndex);
+}
+
 void DataFrame::setHeaders(const QStringList& columnNames)
 {
     for (const QString columnName : columnNames)

@@ -29,6 +29,9 @@ Q_PLUGIN_METADATA(IID "studio.manivault.PatchSeqDataLoader")
 
 #define CELL_ID_TAG "cell_id"
 
+// Magic number that represents a missing value, to be imputed
+constexpr float MISSING_VALUE = 1234567.0f;
+
 using namespace mv;
 using namespace mv::gui;
 
@@ -222,7 +225,16 @@ namespace
                 df.getData().push_back(row);
 
                 for (int col = 0; col < numCols; col++)
-                    dataRow[col] = tokens[col + numStringCols].toFloat();
+                {
+                    if (tokens[col + numStringCols].isEmpty())
+                    {
+                        dataRow[col] = MISSING_VALUE;
+                    }
+                    else
+                    {
+                        dataRow[col] = tokens[col + numStringCols].toFloat();
+                    }
+                }
 
                 matrix.insert(matrix.end(), dataRow.begin(), dataRow.end());
             }
@@ -313,33 +325,82 @@ namespace
         return clusterData;
     }
 
-    std::unordered_map<unsigned int, unsigned int> computeLinkedData(DataFrame& leftDf, DataFrame& rightDf, QString columnNameLeft, QString columnNameRight)
+    void removeRowsWithAllDataMissing(DataFrame& df, std::vector<float>& matrix, int numRows, int numCols)
     {
-        std::vector<QString> columnLeft = leftDf[columnNameLeft];
-        std::vector<QString> columnRight = rightDf[columnNameRight];
-
-        // Make a map out of meta column
-        std::unordered_map<QString, int> indexMap;
-        for (int i = 0; i < columnRight.size(); i++)
+        // Identify rows with all missing values
+        std::vector<int> badRowIndices;
+        for (int row = 0; row < numRows; row++)
         {
-            indexMap[columnRight[i]] = i;
-        }
-
-        // Find mapping
-        std::unordered_map<unsigned int, unsigned int> mapping;
-        for (int i = 0; i < columnLeft.size(); i++)
-        {
-            const QString& cell_id = columnLeft[i];
-            if (indexMap.find(cell_id) == indexMap.end())
+            bool badRow = true;
+            for (int col = 0; col < numCols; col++)
             {
-                //qDebug() << "Failed to find cell ID: " << cell_id << " in metadata file.";
-                continue;
+                if (matrix[row * numCols + col] != MISSING_VALUE)
+                {
+                    badRow = false;
+                }
             }
-            int index = indexMap[cell_id];
-            mapping[i] = index;
+
+            if (badRow)
+            {
+                badRowIndices.push_back(row);
+            }
         }
 
-        return mapping;
+        int numDeletedRows = 0;
+        // Delete bad rows from both the dataframe and the matrix
+        for (int badRowIndex : badRowIndices)
+        {
+            badRowIndex -= numDeletedRows;
+            df.removeRow(badRowIndex);
+            
+            // Remove row from matrix
+            matrix.erase(matrix.begin() + (badRowIndex * numCols + 0), matrix.begin() + (badRowIndex * numCols + numCols));
+            numDeletedRows++;
+        }
+    }
+
+    void imputeMissingValues(std::vector<float>& matrix, int numRows, int numCols)
+    {
+        // Compute means, ignoring missing values
+        for (int col = 0; col < numCols; col++)
+        {
+            // Compute the mean
+            float mean = 0;
+            int numContributions = 0;
+            for (int row = 0; row < numCols; row++)
+            {
+                float v = matrix[row * numCols + col];
+                if (v == MISSING_VALUE)
+                    continue;
+                mean += v;
+                numContributions++;
+            }
+            if (numContributions > 0)
+                mean /= numContributions;
+
+            // Set the imputed value for the rows with missing values
+            for (int row = 0; row < numRows; row++)
+            {
+                float v = matrix[row * numCols + col];
+                if (v == MISSING_VALUE)
+                    matrix[row * numCols + col] = mean;
+            }
+        }
+    }
+
+    void replaceMissingValues(std::vector<float>& matrix, int numRows, int numCols, float replace)
+    {
+        // Compute means, ignoring missing values
+        for (int col = 0; col < numCols; col++)
+        {
+            // Set the imputed value for the rows with missing values
+            for (int row = 0; row < numRows; row++)
+            {
+                float v = matrix[row * numCols + col];
+                if (v == MISSING_VALUE)
+                    matrix[row * numCols + col] = replace;
+            }
+        }
     }
 }
 
@@ -611,6 +672,8 @@ void PatchSeqDataLoader::loadEphysData(QString filePath, const DataFrame& metada
     std::vector<float> ephysMatrix;
     unsigned int numEphysCols;
     readPatchSeqDf(_ephysDf, filePath, 2, ephysMatrix, numEphysCols);
+    removeRowsWithAllDataMissing(_ephysDf, ephysMatrix, _ephysDf.numRows(), numEphysCols);
+    imputeMissingValues(ephysMatrix, _ephysDf.numRows(), numEphysCols);
 
     printFirstFewDimensionsOfDataFrame(_ephysDf);
 
@@ -631,6 +694,7 @@ void PatchSeqDataLoader::loadMorphologyData(QString filePath, const DataFrame& m
     std::vector<float> morphologyMatrix;
     unsigned int numMorphoCols;
     readMorphologyDf(_morphologyDf, filePath, morphologyMatrix, numMorphoCols);
+    replaceMissingValues(morphologyMatrix, _morphologyDf.numRows(), numMorphoCols, 0);
 
     _morphoData = mv::data().createDataset<Points>("Points", QFileInfo(filePath).baseName());
 

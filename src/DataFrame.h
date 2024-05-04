@@ -16,6 +16,7 @@ public:
     const std::vector<QString>& getHeaders() const { return _headers; }
     std::vector<std::vector<QString>>& getData();
 
+    void removeRow(int rowIndex);
     void setHeaders(const QStringList& columnNames);
     void reorder(std::vector<int> order);
     void subsetAndReorderAccordingTo(DataFrame& rightDf, QString columnNameLeft, QString columnNameRight);
