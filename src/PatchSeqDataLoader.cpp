@@ -534,7 +534,6 @@ void PatchSeqDataLoader::loadData()
 
     Dataset<Text> metaDataset;
     metaDataset = mv::data().createDataset<Text>("Text", "cell_metadata", mv::Dataset<DatasetImpl>(), "", false);
-
     metaDataset->setProperty("PatchSeqType", "Metadata");
 
     for (int i = 0; i < metadata.getHeaders().size(); i++)
@@ -656,13 +655,15 @@ void PatchSeqDataLoader::loadGeneExpressionData(QString filePath, const DataFram
 
     printFirstFewDimensionsOfDataFrame(_geneExpressionDf);
 
-    _geneExpressionData = mv::data().createDataset<Points>("Points", QFileInfo(filePath).baseName());
+    _geneExpressionData = mv::data().createDataset<Points>("Points", QFileInfo(filePath).baseName(), mv::Dataset<DatasetImpl>(), "", false);
+    _geneExpressionData->setProperty("PatchSeqType", "T");
 
     std::vector<QString> gexprDimNames(_geneExpressionDf.getHeaders().begin() + 3, _geneExpressionDf.getHeaders().end());
 
     _geneExpressionData->setData(geneExpressionMatrix, numCols);
     _geneExpressionData->setDimensionNames(gexprDimNames);
 
+    events().notifyDatasetAdded(_geneExpressionData);
     events().notifyDatasetDataChanged(_geneExpressionData);
     events().notifyDatasetDataDimensionsChanged(_geneExpressionData);
 }
@@ -677,13 +678,15 @@ void PatchSeqDataLoader::loadEphysData(QString filePath, const DataFrame& metada
 
     printFirstFewDimensionsOfDataFrame(_ephysDf);
 
-    _ephysData = mv::data().createDataset<Points>("Points", QFileInfo(filePath).baseName());
+    _ephysData = mv::data().createDataset<Points>("Points", QFileInfo(filePath).baseName(), mv::Dataset<DatasetImpl>(), "", false);
+    _ephysData->setProperty("PatchSeqType", "E");
 
     std::vector<QString> ephysDimNames(_ephysDf.getHeaders().begin() + 2, _ephysDf.getHeaders().end());
 
     _ephysData->setData(ephysMatrix, numEphysCols);
     _ephysData->setDimensionNames(ephysDimNames);
 
+    events().notifyDatasetAdded(_ephysData);
     events().notifyDatasetDataChanged(_ephysData);
     events().notifyDatasetDataDimensionsChanged(_ephysData);
 }
@@ -696,13 +699,15 @@ void PatchSeqDataLoader::loadMorphologyData(QString filePath, const DataFrame& m
     readMorphologyDf(_morphologyDf, filePath, morphologyMatrix, numMorphoCols);
     replaceMissingValues(morphologyMatrix, _morphologyDf.numRows(), numMorphoCols, 0);
 
-    _morphoData = mv::data().createDataset<Points>("Points", QFileInfo(filePath).baseName());
+    _morphoData = mv::data().createDataset<Points>("Points", QFileInfo(filePath).baseName(), mv::Dataset<DatasetImpl>(), "", false);
+    _morphoData->setProperty("PatchSeqType", "M");
 
     std::vector<QString> morphDimNames(_morphologyDf.getHeaders().begin() + 1, _morphologyDf.getHeaders().end());
 
     _morphoData->setData(morphologyMatrix, numMorphoCols);
     _morphoData->setDimensionNames(morphDimNames);
 
+    events().notifyDatasetAdded(_morphoData);
     events().notifyDatasetDataChanged(_morphoData);
     events().notifyDatasetDataDimensionsChanged(_morphoData);
 
@@ -716,7 +721,8 @@ void PatchSeqDataLoader::loadMorphologyData(QString filePath, const DataFrame& m
 void PatchSeqDataLoader::loadMorphologyCells(QDir dir)
 {
     // Load morphology cells
-    Dataset<CellMorphologies> cellMorphoData = mv::data().createDataset<CellMorphologies>("Cell Morphology Data", "cell_morphology");
+    Dataset<CellMorphologies> cellMorphoData = mv::data().createDataset<CellMorphologies>("Cell Morphology Data", "cell_morphology", mv::Dataset<DatasetImpl>(), "", false);
+    cellMorphoData->setProperty("PatchSeqType", "Morphologies");
 
     QDir morphologyDir(dir);
     morphologyDir.cd("SWC_Upright");
@@ -750,6 +756,7 @@ void PatchSeqDataLoader::loadMorphologyCells(QDir dir)
     cellMorphoData->setCellIdentifiers(cellIds);
     cellMorphoData->setData(cellMorphologies);
 
+    events().notifyDatasetAdded(cellMorphoData);
     events().notifyDatasetDataChanged(cellMorphoData);
     events().notifyDatasetDataDimensionsChanged(cellMorphoData);
 }
