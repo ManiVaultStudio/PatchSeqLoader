@@ -111,6 +111,9 @@ private:
 private:
     DataFrame _taxonomyDf;
 
+    // Metadata
+    DataFrame _metadata;
+
     // Gene expressions
     DataFrame _geneExpressionDf;
     Dataset<Points> _geneExpressionData;

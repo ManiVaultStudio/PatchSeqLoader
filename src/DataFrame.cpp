@@ -101,11 +101,12 @@ DataFrame DataFrame::subsetAndReorderByColumn(const DataFrame& leftDf, DataFrame
         if (indexMap.find(cell_id) == indexMap.end())
         {
             qDebug() << "[subsetAndReorderByColumn] Failed to find cell ID: " << cell_id << " in metadata file.";
+            continue;
         }
         int index = indexMap[cell_id];
         ordering.push_back(index);
     }
-
+    qDebug() << "Ordering: " << ordering.size();
     // Subset and reorder metadata
     std::vector<std::vector<QString>> reorderedData;
 
