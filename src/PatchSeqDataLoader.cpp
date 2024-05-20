@@ -1,5 +1,7 @@
 #include "PatchSeqDataLoader.h"
 
+#include "MatrixDataLoader.h"
+
 #include "Taxonomy.h"
 #include "CellLoader.h"
 #include "FeatureNames.h"
@@ -82,105 +84,7 @@ namespace
         std::cout << std::endl;
     }
 
-    void readGeneExpressionDf(DataFrame& df, QString fileName, std::vector<float>& geneExpressionMatrix, mv::ModalTask& task, unsigned int& numCols)
-    {
-        auto start = std::chrono::high_resolution_clock::now();
-
-        // Read text part of the CSV into a DataFrame
-        QFile inputFile(fileName);
-        if (inputFile.open(QIODevice::ReadOnly))
-        {
-            QTextStream in(&inputFile);
-
-            // Read header
-            if (!in.atEnd())
-            {
-                QString line = in.readLine();
-
-                QStringList tokens = line.split(",");
-                numCols = (tokens.size() - 3);
-
-                for (int i = 0; i < tokens.size(); i++)
-                {
-                    QString& token = tokens[i];
-                    token.replace("\"", "");
-                }
-
-                df.setHeaders(tokens);
-            }
-
-            inputFile.close();
-        }
-        else
-        {
-            throw DataLoadException(fileName, "File was not found at location.");
-        }
-
-        // Read the numbers part
-        std::vector<QString> row(3);
-        std::vector<float> geneExpressionRow(numCols);
-
-        io::LineReader fin(fileName.toStdString());
-
-        char* token;
-
-        bool skippedHeader = false;
-
-        int lineCount = 0;
-        task.setSubtasks(100);
-
-        while (char* line = fin.next_line())
-        {
-            if (!skippedHeader) { skippedHeader = true; continue; }
-            //qDebug() << line;
-            //qDebug() << "new line";
-            task.setSubtaskStarted(lineCount / 18);
-
-            int colIndex = 0;
-            /* get the first three tokens */
-            token = strtok(line, ",");
-            row[0] = token;
-            token = strtok(NULL, ",");
-            row[1] = token;
-            token = strtok(NULL, ",");
-            row[2] = token;
-
-            row[0].replace("\"", "");
-            row[1].replace("\"", "");
-            row[2].replace("\"", "");
-            df.getData().push_back(row);
-
-            token = strtok(NULL, ",");
-
-            /* walk through other tokens */
-            while (token != NULL) {
-                //printf(" %s\n", token);
-
-                geneExpressionRow[colIndex] = atof(token);
-                colIndex++;
-
-                token = strtok(NULL, ",");
-
-                //qDebug() << colIndex;
-            }
-            //df.getData().push_back(row);
-            geneExpressionMatrix.insert(geneExpressionMatrix.end(), geneExpressionRow.begin(), geneExpressionRow.end());
-
-            task.setSubtaskFinished(lineCount / 18);
-
-            QApplication::processEvents();
-
-            lineCount++;
-        }
-
-        qDebug() << "Done";
-
-        auto finish = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> elapsed = finish - start;
-        std::cout << "[PatchSeqDataLoader] Gene expression matrix loaded in: " << elapsed.count() << " s\n";
-    }
-
-    void readPatchSeqDf(DataFrame& df, QString fileName, int numStringCols, std::vector<float>& matrix, unsigned int& numCols)
+    void readPatchSeqDf(DataFrame& df, QString fileName, int numStringCols, MatrixData& matrix)
     {
         auto start = std::chrono::high_resolution_clock::now();
         std::cout << "Starting read" << std::endl;
@@ -198,7 +102,7 @@ namespace
                 QString line = in.readLine();
 
                 QStringList tokens = line.split(",");
-                numCols = (tokens.size() - numStringCols);
+                matrix.numCols = (tokens.size() - numStringCols);
 
                 for (int i = 0; i < tokens.size(); i++)
                 {
@@ -209,7 +113,7 @@ namespace
                 df.setHeaders(tokens);
             }
 
-            std::vector<float> dataRow(numCols);
+            std::vector<float> dataRow(matrix.numCols);
             while (!in.atEnd())
             {
                 QString line = in.readLine();
@@ -225,7 +129,7 @@ namespace
 
                 df.getData().push_back(row);
 
-                for (int col = 0; col < numCols; col++)
+                for (int col = 0; col < matrix.numCols; col++)
                 {
                     if (tokens[col + numStringCols].isEmpty())
                     {
@@ -237,7 +141,7 @@ namespace
                     }
                 }
 
-                matrix.insert(matrix.end(), dataRow.begin(), dataRow.end());
+                matrix.data.insert(matrix.data.end(), dataRow.begin(), dataRow.end());
             }
             inputFile.close();
         }
@@ -326,7 +230,7 @@ namespace
         }
     }
 
-    void removeRows(DataFrame& df, const std::vector<int>& rowsToDelete, std::vector<float>& matrix, int numCols)
+    void removeRows(DataFrame& df, const std::vector<int>& rowsToDelete, MatrixData& matrix)
     {
         int rowsRemoved = 0;
         // Delete bad rows from both the dataframe and the matrix
@@ -336,12 +240,12 @@ namespace
             df.removeRow(rowToDelete);
 
             // Remove row from matrix
-            matrix.erase(matrix.begin() + (rowToDelete * numCols + 0), matrix.begin() + (rowToDelete * numCols + numCols));
+            matrix.removeRow(rowToDelete);
             rowsRemoved++;
         }
     }
 
-    void removeRowsNotInMetadata(DataFrame& df, QString columnToCheck, DataFrame& metadata, std::vector<float>& matrix, int numCols)
+    void removeRowsNotInMetadata(DataFrame& df, QString columnToCheck, DataFrame& metadata, MatrixData& matrix)
     {
         std::vector<QString> metaColumn = metadata[columnToCheck];
         // Make a unique set out of meta column
@@ -365,7 +269,7 @@ namespace
         }
         qDebug() << "Removing " << rowsToRemove.size() << " rows because they are not found in metadata";
 
-        removeRows(df, rowsToRemove, matrix, numCols);
+        removeRows(df, rowsToRemove, matrix);
     }
 
     std::unordered_map<QString, std::vector<unsigned int>> makeClustersFromList(std::vector<QString> list)
@@ -380,16 +284,18 @@ namespace
         return clusterData;
     }
 
-    void removeRowsWithAllDataMissing(DataFrame& df, std::vector<float>& matrix, int numRows, int numCols)
+    void removeRowsWithAllDataMissing(DataFrame& df, MatrixData& matrix)
     {
+        int numRows = matrix.numRows;
+
         // Identify rows with all missing values
         std::vector<int> badRowIndices;
         for (int row = 0; row < numRows; row++)
         {
             bool badRow = true;
-            for (int col = 0; col < numCols; col++)
+            for (int col = 0; col < matrix.numCols; col++)
             {
-                if (matrix[row * numCols + col] != MISSING_VALUE)
+                if (matrix.data[row * matrix.numCols + col] != MISSING_VALUE)
                 {
                     badRow = false;
                 }
@@ -401,20 +307,20 @@ namespace
             }
         }
 
-        removeRows(df, badRowIndices, matrix, numCols);
+        removeRows(df, badRowIndices, matrix);
     }
 
-    void imputeMissingValues(std::vector<float>& matrix, int numRows, int numCols)
+    void imputeMissingValues(MatrixData& matrix)
     {
         // Compute means, ignoring missing values
-        for (int col = 0; col < numCols; col++)
+        for (int col = 0; col < matrix.numCols; col++)
         {
             // Compute the mean
             float mean = 0;
             int numContributions = 0;
-            for (int row = 0; row < numCols; row++)
+            for (int row = 0; row < matrix.numCols; row++)
             {
-                float v = matrix[row * numCols + col];
+                float v = matrix.data[row * matrix.numCols + col];
                 if (v == MISSING_VALUE)
                     continue;
                 mean += v;
@@ -424,26 +330,26 @@ namespace
                 mean /= numContributions;
 
             // Set the imputed value for the rows with missing values
-            for (int row = 0; row < numRows; row++)
+            for (int row = 0; row < matrix.numRows; row++)
             {
-                float v = matrix[row * numCols + col];
+                float v = matrix.data[row * matrix.numCols + col];
                 if (v == MISSING_VALUE)
-                    matrix[row * numCols + col] = mean;
+                    matrix.data[row * matrix.numCols + col] = mean;
             }
         }
     }
 
-    void replaceMissingValues(std::vector<float>& matrix, int numRows, int numCols, float replace)
+    void replaceMissingValues(MatrixData& matrix, float replace)
     {
         // Compute means, ignoring missing values
-        for (int col = 0; col < numCols; col++)
+        for (int col = 0; col < matrix.numCols; col++)
         {
             // Set the imputed value for the rows with missing values
-            for (int row = 0; row < numRows; row++)
+            for (int row = 0; row < matrix.numRows; row++)
             {
-                float v = matrix[row * numCols + col];
+                float v = matrix.data[row * matrix.numCols + col];
                 if (v == MISSING_VALUE)
-                    matrix[row * numCols + col] = replace;
+                    matrix.data[row * matrix.numCols + col] = replace;
             }
         }
     }
@@ -477,7 +383,7 @@ namespace
         removeRows(df, duplicateRows);
     }
 
-    void removeDuplicateRows(DataFrame& df, QString columnToCheck, std::vector<float>& matrix, int numCols)
+    void removeDuplicateRows(DataFrame& df, QString columnToCheck, MatrixData& matrix)
     {
         std::vector<int> duplicateRows = findDuplicateRows(df, columnToCheck);
         qDebug() << "Removing duplicate rows: " << duplicateRows.size();
@@ -485,7 +391,7 @@ namespace
         {
             qDebug() << df[columnToCheck][duplicateRows[i]];
         }
-        removeRows(df, duplicateRows, matrix, numCols);
+        removeRows(df, duplicateRows, matrix);
     }
 }
 
@@ -584,6 +490,10 @@ void PatchSeqDataLoader::loadData()
         return;
     }
 
+    _task.setEnabled(true);
+    _task.setRunning();
+    QCoreApplication::processEvents();
+
     // Load taxonomy
     qDebug() << "Reading taxonomy annotations from file..";
     //Taxonomy taxonomy = Taxonomy::fromJsonFile();
@@ -597,14 +507,16 @@ void PatchSeqDataLoader::loadData()
     removeDuplicateRows(_metadata, CELL_ID_TAG);
 
     // Read gene expression file
+    _task.setSubtaskStarted("Loading Transcriptomics");
     loadGeneExpressionData(filePaths.gexprFilePath, _metadata);
+    _task.setSubtaskFinished("Loading Transcriptomics");
 
     // Read electrophysiology file
     loadEphysData(filePaths.ephysFilePath, _metadata);
 
     // Subset and reorder the metadata
     qDebug() << "<<<<<<<<<<<<<<<<<<<<<< GEXPR";
-    DataFrame gexpr_metadata = DataFrame::subsetAndReorderByColumn(_metadata, _geneExpressionDf, CELL_ID_TAG, CELL_ID_TAG);
+    DataFrame gexpr_metadata = DataFrame::subsetAndReorderByColumn(_metadata, _transcriptomicsDf, CELL_ID_TAG, CELL_ID_TAG);
     qDebug() << "<<<<<<<<<<<<<<<<<<<<<< EPHYS";
     // Subset and reorder the metadata
     DataFrame ephys_metadata = DataFrame::subsetAndReorderByColumn(_metadata, _ephysDf, CELL_ID_TAG, CELL_ID_TAG);
@@ -612,12 +524,14 @@ void PatchSeqDataLoader::loadData()
     qDebug() << ephys_metadata[CELL_ID_TAG];
 
     // Add cluster meta data
-    addTaxonomyClustersForDf(_geneExpressionDf, gexpr_metadata, _taxonomyDf, QFileInfo(filePaths.gexprFilePath).baseName(), _geneExpressionData);
+    addTaxonomyClustersForDf(_transcriptomicsDf, gexpr_metadata, _taxonomyDf, QFileInfo(filePaths.gexprFilePath).baseName(), _geneExpressionData);
 
     // Add cluster meta data
     addTaxonomyClustersForDf(_ephysDf, ephys_metadata, _taxonomyDf, QFileInfo(filePaths.ephysFilePath).baseName(), _ephysData);
 
     loadMorphologyData(filePaths.morphoFilePath, _metadata);
+
+    _task.setFinished();
 
     Dataset<Text> metaDataset;
     metaDataset = mv::data().createDataset<Text>("Text", "cell_metadata", mv::Dataset<DatasetImpl>(), "", false);
@@ -736,26 +650,19 @@ void PatchSeqDataLoader::loadData()
 void PatchSeqDataLoader::loadGeneExpressionData(QString filePath, const DataFrame& metadata)
 {
     qDebug() << "Loading transcriptomic data..";
-    _task.setEnabled(true);
-    _task.setRunning();
-    QCoreApplication::processEvents();
 
-    std::vector<float> geneExpressionMatrix;
-    unsigned int numCols;
-    readGeneExpressionDf(_geneExpressionDf, filePath, geneExpressionMatrix, _task, numCols);
-    removeDuplicateRows(_geneExpressionDf, CELL_ID_TAG, geneExpressionMatrix, numCols);
+    MatrixData matrixData;
+    MatrixDataLoader matrixDataLoader;
+    matrixDataLoader.LoadMatrixData(filePath, _transcriptomicsDf, matrixData, 3);
 
-    _task.setFinished();
+    removeDuplicateRows(_transcriptomicsDf, CELL_ID_TAG, matrixData);
 
-    printFirstFewDimensionsOfDataFrame(_geneExpressionDf);
+    printFirstFewDimensionsOfDataFrame(_transcriptomicsDf);
 
     _geneExpressionData = mv::data().createDataset<Points>("Points", QFileInfo(filePath).baseName(), mv::Dataset<DatasetImpl>(), "", false);
     _geneExpressionData->setProperty("PatchSeqType", "T");
-
-    std::vector<QString> gexprDimNames(_geneExpressionDf.getHeaders().begin() + 3, _geneExpressionDf.getHeaders().end());
-
-    _geneExpressionData->setData(geneExpressionMatrix, numCols);
-    _geneExpressionData->setDimensionNames(gexprDimNames);
+    _geneExpressionData->setData(matrixData.data, matrixData.numCols);
+    _geneExpressionData->setDimensionNames(matrixData.headers);
 
     events().notifyDatasetAdded(_geneExpressionData);
     events().notifyDatasetDataChanged(_geneExpressionData);
@@ -765,13 +672,17 @@ void PatchSeqDataLoader::loadGeneExpressionData(QString filePath, const DataFram
 void PatchSeqDataLoader::loadEphysData(QString filePath, const DataFrame& metadata)
 {
     qDebug() << "Loading electrophysiology data..";
-    std::vector<float> ephysMatrix;
-    unsigned int numEphysCols;
-    readPatchSeqDf(_ephysDf, filePath, 2, ephysMatrix, numEphysCols);
-    removeDuplicateRows(_ephysDf, CELL_ID_TAG, ephysMatrix, numEphysCols);
-    removeRowsNotInMetadata(_ephysDf, CELL_ID_TAG, _metadata, ephysMatrix, numEphysCols);
-    removeRowsWithAllDataMissing(_ephysDf, ephysMatrix, _ephysDf.numRows(), numEphysCols);
-    imputeMissingValues(ephysMatrix, _ephysDf.numRows(), numEphysCols);
+
+    MatrixData matrixData;
+    MatrixDataLoader matrixDataLoader;
+    //matrixDataLoader.LoadMatrixData(filePath, _ephysDf, matrixData, 2);
+
+    readPatchSeqDf(_ephysDf, filePath, 2, matrixData);
+    matrixData.numRows = matrixData.data.size() / matrixData.numCols;
+    removeDuplicateRows(_ephysDf, CELL_ID_TAG, matrixData);
+    removeRowsNotInMetadata(_ephysDf, CELL_ID_TAG, _metadata, matrixData);
+    removeRowsWithAllDataMissing(_ephysDf, matrixData);
+    imputeMissingValues(matrixData);
 
     printFirstFewDimensionsOfDataFrame(_ephysDf);
 
@@ -780,7 +691,7 @@ void PatchSeqDataLoader::loadEphysData(QString filePath, const DataFrame& metada
 
     std::vector<QString> ephysDimNames(_ephysDf.getHeaders().begin() + 2, _ephysDf.getHeaders().end());
 
-    _ephysData->setData(ephysMatrix, numEphysCols);
+    _ephysData->setData(matrixData.data, matrixData.numCols);
     _ephysData->setDimensionNames(ephysDimNames);
 
     events().notifyDatasetAdded(_ephysData);
@@ -791,20 +702,18 @@ void PatchSeqDataLoader::loadEphysData(QString filePath, const DataFrame& metada
 void PatchSeqDataLoader::loadMorphologyData(QString filePath, const DataFrame& metadata)
 {
     qDebug() << "Loading morphology data..";
-    // Load morphology data
-    std::vector<float> morphologyMatrix;
-    unsigned int numMorphoCols;
-    readMorphologyDf(_morphologyDf, filePath, morphologyMatrix, numMorphoCols);
-    removeDuplicateRows(_morphologyDf, CELL_ID_TAG, morphologyMatrix, numMorphoCols);
-    replaceMissingValues(morphologyMatrix, _morphologyDf.numRows(), numMorphoCols, 0);
+
+    MatrixData matrixData;
+    MatrixDataLoader matrixDataLoader;
+    matrixDataLoader.LoadMatrixData(filePath, _morphologyDf, matrixData, 1);
+
+    removeDuplicateRows(_morphologyDf, CELL_ID_TAG, matrixData);
+    replaceMissingValues(matrixData, 0);
 
     _morphoData = mv::data().createDataset<Points>("Points", QFileInfo(filePath).baseName(), mv::Dataset<DatasetImpl>(), "", false);
     _morphoData->setProperty("PatchSeqType", "M");
-
-    std::vector<QString> morphDimNames(_morphologyDf.getHeaders().begin() + 1, _morphologyDf.getHeaders().end());
-
-    _morphoData->setData(morphologyMatrix, numMorphoCols);
-    _morphoData->setDimensionNames(morphDimNames);
+    _morphoData->setData(matrixData.data, matrixData.numCols);
+    _morphoData->setDimensionNames(matrixData.headers);
 
     events().notifyDatasetAdded(_morphoData);
     events().notifyDatasetDataChanged(_morphoData);

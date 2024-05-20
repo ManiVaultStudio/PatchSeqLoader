@@ -115,7 +115,7 @@ private:
     DataFrame _metadata;
 
     // Gene expressions
-    DataFrame _geneExpressionDf;
+    DataFrame _transcriptomicsDf;
     Dataset<Points> _geneExpressionData;
 
     // Electrophysiology

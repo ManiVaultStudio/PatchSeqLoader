@@ -48,6 +48,8 @@ set(PLUGIN_SOURCES
     src/FeatureNames.h
     src/PatchSeqFilePaths.h
     src/PatchSeqFilePaths.cpp
+    src/MatrixDataLoader.h
+    src/MatrixDataLoader.cpp
     src/json.hpp
 )
 

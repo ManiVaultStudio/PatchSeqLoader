@@ -34,6 +34,11 @@ void DataFrame::removeRow(int rowIndex)
     _data.erase(_data.begin() + rowIndex);
 }
 
+void DataFrame::addHeader(QString header)
+{
+    _headers.push_back(header);
+}
+
 void DataFrame::setHeaders(const QStringList& columnNames)
 {
     for (const QString columnName : columnNames)

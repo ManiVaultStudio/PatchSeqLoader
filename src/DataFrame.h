@@ -16,7 +16,10 @@ public:
     const std::vector<QString>& getHeaders() const { return _headers; }
     std::vector<std::vector<QString>>& getData();
 
+    void addRow(std::vector<QString>& row) { _data.push_back(row); }
     void removeRow(int rowIndex);
+
+    void addHeader(QString header);
     void setHeaders(const QStringList& columnNames);
     void reorder(std::vector<int> order);
     void subsetAndReorderAccordingTo(DataFrame& rightDf, QString columnNameLeft, QString columnNameRight);
