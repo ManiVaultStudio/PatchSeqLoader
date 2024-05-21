@@ -54,7 +54,62 @@ namespace
         inputFile.close();
     }
 
-    void ReadBody(QString fileName, DataFrame& df, MatrixData& matrix, int numMetaColumns)
+    void FastLineRead(char* line, std::vector<QString>& metadataRow, std::vector<float>& dataRow, int numMetaColumns)
+    {
+        char* token;
+        int colIndex = 0;
+
+        // Read metadata part
+        for (int i = 0; i < numMetaColumns; i++)
+        {
+            token = strtok(i == 0 ? line : NULL, &DELIMITER);
+            metadataRow[i] = token;
+            metadataRow[i].replace("\"", "");
+        }
+
+        // Read the data part
+        token = strtok(NULL, &DELIMITER);
+
+        while (token != NULL)
+        {
+            dataRow[colIndex++] = atof(token);
+
+            token = strtok(NULL, &DELIMITER);
+        }
+    }
+
+    void MissingValueLineRead(char* line, std::vector<QString>& metadataRow, std::vector<float>& dataRow, int numMetaColumns)
+    {
+        int colIndex = 0;
+
+        char* p = line;
+        while (true)
+        {
+            char* p2 = strchr(p, DELIMITER);
+            if (p2 != NULL)
+                *p2 = '\0';
+
+            if (colIndex < numMetaColumns)
+            {
+                metadataRow[colIndex] = p;
+                metadataRow[colIndex].replace("\"", "");
+            }
+            else
+            {
+                if (*p == '\0')
+                    dataRow[colIndex - numMetaColumns] = MISSING_VALUE;
+                else
+                    dataRow[colIndex - numMetaColumns] = atof(p);
+            }
+            colIndex++;
+
+            if (p2 == NULL)
+                break;
+            p = p2 + 1;
+        }
+    }
+
+    void ReadBody(QString fileName, DataFrame& df, MatrixData& matrix, int numMetaColumns, bool handleMissingValues)
     {
         std::vector<QString> metadataRow(numMetaColumns);
         std::vector<float> dataRow(matrix.numCols);
@@ -72,26 +127,12 @@ namespace
         // Process data line-by-line
         while (char* line = fin.next_line())
         {
-            int colIndex = 0;
+            if (handleMissingValues)
+                MissingValueLineRead(line, metadataRow, dataRow, numMetaColumns);
+            else
+                FastLineRead(line, metadataRow, dataRow, numMetaColumns);
 
-            // Read metadata part
-            for (int i = 0; i < numMetaColumns; i++)
-            {
-                token = strtok(i == 0 ? line : NULL, &DELIMITER);
-                metadataRow[i] = token;
-                metadataRow[i].replace("\"", "");
-            }
             df.getData().push_back(metadataRow);
-
-            // Read the data part
-            token = strtok(NULL, &DELIMITER);
-
-            while (token != NULL)
-            {
-                dataRow[colIndex++] = atof(token);
-
-                token = strtok(NULL, &DELIMITER);
-            }
             matrix.data.insert(matrix.data.end(), dataRow.begin(), dataRow.end());
 
             lineCount++;
@@ -114,5 +155,5 @@ void MatrixDataLoader::LoadMatrixData(QString fileName, DataFrame& df, MatrixDat
 
     // File is open
     ReadHeader(fileName, df, matrix, numMetaCols);
-    ReadBody(fileName, df, matrix, numMetaCols);
+    ReadBody(fileName, df, matrix, numMetaCols, _handleMissingValues);
 }

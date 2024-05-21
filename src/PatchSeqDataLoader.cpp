@@ -32,9 +32,6 @@ Q_PLUGIN_METADATA(IID "studio.manivault.PatchSeqDataLoader")
 
 #define CELL_ID_TAG "cell_id"
 
-// Magic number that represents a missing value, to be imputed
-constexpr float MISSING_VALUE = 1234567.0f;
-
 using namespace mv;
 using namespace mv::gui;
 
@@ -82,77 +79,6 @@ namespace
             std::cout << df.getHeaders()[i].toStdString() << ", ";
         }
         std::cout << std::endl;
-    }
-
-    void readPatchSeqDf(DataFrame& df, QString fileName, int numStringCols, MatrixData& matrix)
-    {
-        auto start = std::chrono::high_resolution_clock::now();
-        std::cout << "Starting read" << std::endl;
-
-        std::vector<QString> row(numStringCols);
-
-        QFile inputFile(fileName);
-        if (inputFile.open(QIODevice::ReadOnly))
-        {
-            QTextStream in(&inputFile);
-
-            // Read header
-            if (!in.atEnd())
-            {
-                QString line = in.readLine();
-
-                QStringList tokens = line.split(",");
-                matrix.numCols = (tokens.size() - numStringCols);
-
-                for (int i = 0; i < tokens.size(); i++)
-                {
-                    QString& token = tokens[i];
-                    token.replace("\"", "");
-                }
-
-                df.setHeaders(tokens);
-            }
-
-            std::vector<float> dataRow(matrix.numCols);
-            while (!in.atEnd())
-            {
-                QString line = in.readLine();
-
-                QStringList tokens = line.split(",");
-
-                for (int i = 0; i < numStringCols; i++)
-                {
-                    QString token = tokens[i];
-                    token.replace("\"", "");
-                    row[i] = token;
-                }
-
-                df.getData().push_back(row);
-
-                for (int col = 0; col < matrix.numCols; col++)
-                {
-                    if (tokens[col + numStringCols].isEmpty())
-                    {
-                        dataRow[col] = MISSING_VALUE;
-                    }
-                    else
-                    {
-                        dataRow[col] = tokens[col + numStringCols].toFloat();
-                    }
-                }
-
-                matrix.data.insert(matrix.data.end(), dataRow.begin(), dataRow.end());
-            }
-            inputFile.close();
-        }
-        else
-        {
-            throw DataLoadException(fileName, "File was not found at location.");
-        }
-
-        auto finish = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> elapsed = finish - start;
-        std::cout << "[PatchSeqDataLoader] " << fileName.toStdString() << " loaded in : " << elapsed.count() << " s\n";
     }
 
     void readMorphologyDf(DataFrame& df, QString fileName, std::vector<float>& matrix, unsigned int& numCols)
@@ -674,11 +600,9 @@ void PatchSeqDataLoader::loadEphysData(QString filePath, const DataFrame& metada
     qDebug() << "Loading electrophysiology data..";
 
     MatrixData matrixData;
-    MatrixDataLoader matrixDataLoader;
-    //matrixDataLoader.LoadMatrixData(filePath, _ephysDf, matrixData, 2);
+    MatrixDataLoader matrixDataLoader(true);
+    matrixDataLoader.LoadMatrixData(filePath, _ephysDf, matrixData, 2);
 
-    readPatchSeqDf(_ephysDf, filePath, 2, matrixData);
-    matrixData.numRows = matrixData.data.size() / matrixData.numCols;
     removeDuplicateRows(_ephysDf, CELL_ID_TAG, matrixData);
     removeRowsNotInMetadata(_ephysDf, CELL_ID_TAG, _metadata, matrixData);
     removeRowsWithAllDataMissing(_ephysDf, matrixData);
@@ -688,11 +612,8 @@ void PatchSeqDataLoader::loadEphysData(QString filePath, const DataFrame& metada
 
     _ephysData = mv::data().createDataset<Points>("Points", QFileInfo(filePath).baseName(), mv::Dataset<DatasetImpl>(), "", false);
     _ephysData->setProperty("PatchSeqType", "E");
-
-    std::vector<QString> ephysDimNames(_ephysDf.getHeaders().begin() + 2, _ephysDf.getHeaders().end());
-
     _ephysData->setData(matrixData.data, matrixData.numCols);
-    _ephysData->setDimensionNames(ephysDimNames);
+    _ephysData->setDimensionNames(matrixData.headers);
 
     events().notifyDatasetAdded(_ephysData);
     events().notifyDatasetDataChanged(_ephysData);
