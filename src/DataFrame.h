@@ -24,6 +24,8 @@ public:
     void reorder(std::vector<int> order);
     void subsetAndReorderAccordingTo(DataFrame& rightDf, QString columnNameLeft, QString columnNameRight);
 
+    void printFirstFewDimensionsOfDataFrame();
+
     static DataFrame subsetAndReorderByColumn(const DataFrame& leftDf, DataFrame& rightDf, QString columnNameLeft, QString columnNameRight);
 
     std::vector<QString> operator[](QString columnName) const;

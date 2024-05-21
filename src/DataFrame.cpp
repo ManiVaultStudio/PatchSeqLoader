@@ -3,6 +3,7 @@
 #include <QDebug>
 
 #include <unordered_map>
+#include <iostream>
 
 DataFrame::DataFrame()
 {
@@ -85,6 +86,16 @@ void DataFrame::subsetAndReorderAccordingTo(DataFrame& rightDf, QString columnNa
 
     // Subset and reorder metadata
     reorder(ordering);
+}
+
+void DataFrame::printFirstFewDimensionsOfDataFrame()
+{
+    std::cout << "Loaded file with first 20 dimensions: ";
+    for (int i = 0; i < std::min(20, (int) _headers.size()); i++)
+    {
+        std::cout << _headers[i].toStdString() << ", ";
+    }
+    std::cout << std::endl;
 }
 
 DataFrame DataFrame::subsetAndReorderByColumn(const DataFrame& leftDf, DataFrame& rightDf, QString columnNameLeft, QString columnNameRight)

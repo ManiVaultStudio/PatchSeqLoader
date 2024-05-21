@@ -71,16 +71,6 @@ namespace
         file.close();
     }
 
-    void printFirstFewDimensionsOfDataFrame(const DataFrame& df)
-    {
-        std::cout << "Loaded file with first 20 dimensions: ";
-        for (int i = 0; i < std::min(20, (int) df.getHeaders().size()); i++)
-        {
-            std::cout << df.getHeaders()[i].toStdString() << ", ";
-        }
-        std::cout << std::endl;
-    }
-
     void readMorphologyDf(DataFrame& df, QString fileName, std::vector<float>& matrix, unsigned int& numCols)
     {
         auto start = std::chrono::high_resolution_clock::now();
@@ -583,7 +573,7 @@ void PatchSeqDataLoader::loadGeneExpressionData(QString filePath, const DataFram
 
     removeDuplicateRows(_transcriptomicsDf, CELL_ID_TAG, matrixData);
 
-    printFirstFewDimensionsOfDataFrame(_transcriptomicsDf);
+    _transcriptomicsDf.printFirstFewDimensionsOfDataFrame();
 
     _geneExpressionData = mv::data().createDataset<Points>("Points", QFileInfo(filePath).baseName(), mv::Dataset<DatasetImpl>(), "", false);
     _geneExpressionData->setProperty("PatchSeqType", "T");
@@ -608,7 +598,7 @@ void PatchSeqDataLoader::loadEphysData(QString filePath, const DataFrame& metada
     removeRowsWithAllDataMissing(_ephysDf, matrixData);
     imputeMissingValues(matrixData);
 
-    printFirstFewDimensionsOfDataFrame(_ephysDf);
+    _ephysDf.printFirstFewDimensionsOfDataFrame();
 
     _ephysData = mv::data().createDataset<Points>("Points", QFileInfo(filePath).baseName(), mv::Dataset<DatasetImpl>(), "", false);
     _ephysData->setProperty("PatchSeqType", "E");
