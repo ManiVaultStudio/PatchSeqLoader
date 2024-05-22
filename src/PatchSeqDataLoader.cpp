@@ -38,6 +38,27 @@ using namespace mv::gui;
 
 namespace
 {
+    void addPointsToTextDataset(Dataset<Points>& points, Dataset<Text>& text, std::vector<uint32_t>& indexMapping)
+    {
+        for (int d = 0; d < points->getNumDimensions(); d++)
+        {
+            std::vector<QString> column(text->getNumRows(), "?");
+            QString dimName = points->getDimensionNames()[d];
+
+            // Get a proper name if possible
+            QString properHeaderName = dimName;
+            if (properFeatureNames.find(dimName) != properFeatureNames.end())
+                properHeaderName = properFeatureNames[dimName];
+
+            for (size_t i = 0; i < indexMapping.size(); i++)
+            {
+                uint32_t row = indexMapping[i];
+                column[row] = QString::number(points->getValueAt(i * points->getNumDimensions() + d));
+            }
+            text->addColumn(properHeaderName, column);
+        }
+    }
+
     void removeRows(DataFrame& df, const std::vector<int>& rowsToDelete, MatrixData& matrix)
     {
         int rowsRemoved = 0;
@@ -297,41 +318,9 @@ void PatchSeqDataLoader::loadData()
     std::vector<QString> morphoCellIdColumn = _morphoMetadata[CELL_ID_TAG];
     std::vector<uint32_t> morphoToMetaIndices = metadataBiMap.getValuesByKeys(morphoCellIdColumn);
 
-    for (int d = 0; d < _ephysData->getNumDimensions(); d++)
-    {
-        std::vector<QString> column(_metadata.numRows(), "?");
-        QString dimName = _ephysData->getDimensionNames()[d];
-
-        // Get a proper name if possible
-        QString properHeaderName = dimName;
-        if (properFeatureNames.find(dimName) != properFeatureNames.end())
-            properHeaderName = properFeatureNames[dimName];
-
-        for (size_t i = 0; i < ephysToMetaIndices.size(); i++)
-        {
-            uint32_t row = ephysToMetaIndices[i];
-            column[row] = QString::number(_ephysData->getValueAt(i * _ephysData->getNumDimensions() + d));
-        }
-        metaDataset->addColumn(properHeaderName, column);
-    }
-
-    for (int d = 0; d < _morphoData->getNumDimensions(); d++)
-    {
-        std::vector<QString> column(_metadata.numRows(), "?");
-        QString dimName = _morphoData->getDimensionNames()[d];
-
-        // Get a proper name if possible
-        QString properHeaderName = dimName;
-        if (properFeatureNames.find(dimName) != properFeatureNames.end())
-            properHeaderName = properFeatureNames[dimName];
-
-        for (size_t i = 0; i < morphoToMetaIndices.size(); i++)
-        {
-            uint32_t row = morphoToMetaIndices[i];
-            column[row] = QString::number(_morphoData->getValueAt(i * _morphoData->getNumDimensions() + d));
-        }
-        metaDataset->addColumn(properHeaderName, column);
-    }
+    // Add ephys and morpho data to metadata dataset
+    addPointsToTextDataset(_ephysData, metaDataset, ephysToMetaIndices);
+    addPointsToTextDataset(_morphoData, metaDataset, morphoToMetaIndices);
 
     events().notifyDatasetAdded(metaDataset);
     events().notifyDatasetDataDimensionsChanged(metaDataset);
