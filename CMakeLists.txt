@@ -41,6 +41,8 @@ set(PLUGIN_SOURCES
     src/PatchSeqDataLoader.json
     src/DataFrame.h
     src/DataFrame.cpp
+    src/MatrixData.h
+    src/MatrixData.cpp
     src/Taxonomy.h
     src/Taxonomy.cpp
     src/CellLoader.h

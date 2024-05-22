@@ -1,5 +1,7 @@
 #include "MatrixDataLoader.h"
 
+#include "MatrixData.h"
+
 #include <LoaderPlugin.h>
 #include <util/Timer.h>
 #include <Task.h>

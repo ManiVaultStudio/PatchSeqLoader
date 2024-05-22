@@ -1,6 +1,7 @@
 #include "PatchSeqDataLoader.h"
 
 #include "MatrixDataLoader.h"
+#include "MatrixData.h"
 
 #include "Taxonomy.h"
 #include "CellLoader.h"
@@ -149,35 +150,6 @@ namespace
         }
 
         removeRows(df, badRowIndices, matrix);
-    }
-
-    void imputeMissingValues(MatrixData& matrix)
-    {
-        // Compute means, ignoring missing values
-        for (int col = 0; col < matrix.numCols; col++)
-        {
-            // Compute the mean
-            float mean = 0;
-            int numContributions = 0;
-            for (int row = 0; row < matrix.numCols; row++)
-            {
-                float v = matrix.data[row * matrix.numCols + col];
-                if (v == MISSING_VALUE)
-                    continue;
-                mean += v;
-                numContributions++;
-            }
-            if (numContributions > 0)
-                mean /= numContributions;
-
-            // Set the imputed value for the rows with missing values
-            for (int row = 0; row < matrix.numRows; row++)
-            {
-                float v = matrix.data[row * matrix.numCols + col];
-                if (v == MISSING_VALUE)
-                    matrix.data[row * matrix.numCols + col] = mean;
-            }
-        }
     }
 
     void replaceMissingValues(MatrixData& matrix, float replace)
@@ -492,7 +464,7 @@ void PatchSeqDataLoader::loadEphysData(QString filePath, const DataFrame& metada
     removeDuplicateRows(_ephysDf, CELL_ID_TAG, matrixData);
     removeRowsNotInMetadata(_ephysDf, CELL_ID_TAG, _metadata, matrixData);
     removeRowsWithAllDataMissing(_ephysDf, matrixData);
-    imputeMissingValues(matrixData);
+    matrixData.imputeMissingValues();
 
     _ephysDf.printFirstFewDimensionsOfDataFrame();
 
