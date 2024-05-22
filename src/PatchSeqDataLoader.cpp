@@ -71,68 +71,6 @@ namespace
         file.close();
     }
 
-    void readMorphologyDf(DataFrame& df, QString fileName, std::vector<float>& matrix, unsigned int& numCols)
-    {
-        auto start = std::chrono::high_resolution_clock::now();
-
-        int numStringColumns = 1;
-
-        std::vector<QString> row(numStringColumns);
-
-        QFile inputFile(fileName);
-        if (inputFile.open(QIODevice::ReadOnly))
-        {
-            QTextStream in(&inputFile);
-
-            // Read header
-            if (!in.atEnd())
-            {
-                QString line = in.readLine();
-
-                QStringList tokens = line.split(",");
-                numCols = (tokens.size() - numStringColumns);
-
-                for (int i = 0; i < tokens.size(); i++)
-                {
-                    QString& token = tokens[i];
-                    token.replace("\"", "");
-                }
-
-                df.setHeaders(tokens);
-            }
-
-            std::vector<float> dataRow(numCols);
-            while (!in.atEnd())
-            {
-                QString line = in.readLine();
-
-                QStringList tokens = line.split(",");
-
-                for (int i = 0; i < numStringColumns; i++)
-                {
-                    QString token = tokens[i];
-                    token.replace("\"", "");
-                    row[i] = token;
-                }
-
-                df.getData().push_back(row);
-
-                for (int col = 0; col < numCols; col++)
-                    dataRow[col] = tokens[col + numStringColumns].toFloat();
-
-                matrix.insert(matrix.end(), dataRow.begin(), dataRow.end());
-            }
-            inputFile.close();
-        }
-        else
-        {
-            throw DataLoadException(fileName, "File was not found at location.");
-        }
-
-        auto finish = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> elapsed = finish - start;
-        std::cout << "[PatchSeqDataLoader] " << fileName.toStdString() << " loaded in : " << elapsed.count() << " s\n";
-    }
     void removeRows(DataFrame& df, const std::vector<int>& rowsToDelete, MatrixData& matrix)
     {
         int rowsRemoved = 0;
