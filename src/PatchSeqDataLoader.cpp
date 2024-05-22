@@ -152,21 +152,6 @@ namespace
         removeRows(df, badRowIndices, matrix);
     }
 
-    void replaceMissingValues(MatrixData& matrix, float replace)
-    {
-        // Compute means, ignoring missing values
-        for (int col = 0; col < matrix.numCols; col++)
-        {
-            // Set the imputed value for the rows with missing values
-            for (int row = 0; row < matrix.numRows; row++)
-            {
-                float v = matrix.data[row * matrix.numCols + col];
-                if (v == MISSING_VALUE)
-                    matrix.data[row * matrix.numCols + col] = replace;
-            }
-        }
-    }
-
     void removeDuplicateRows(DataFrame& df, QString columnToCheck, MatrixData& matrix)
     {
         std::vector<int> duplicateRows = df.findDuplicateRows(columnToCheck);
@@ -487,7 +472,7 @@ void PatchSeqDataLoader::loadMorphologyData(QString filePath, const DataFrame& m
     matrixDataLoader.LoadMatrixData(filePath, _morphologyDf, matrixData, 1);
 
     removeDuplicateRows(_morphologyDf, CELL_ID_TAG, matrixData);
-    replaceMissingValues(matrixData, 0);
+    matrixData.fillMissingValues(0);
 
     _morphoData = mv::data().createDataset<Points>("Points", QFileInfo(filePath).baseName(), mv::Dataset<DatasetImpl>(), "", false);
     _morphoData->setProperty("PatchSeqType", "M");

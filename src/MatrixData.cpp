@@ -6,6 +6,21 @@ void MatrixData::removeRow(int row)
     numRows--;
 }
 
+void MatrixData::fillMissingValues(float fillValue)
+{
+    // Compute means, ignoring missing values
+    for (int col = 0; col < numCols; col++)
+    {
+        // Set the imputed value for the rows with missing values
+        for (int row = 0; row < numRows; row++)
+        {
+            float v = data[row * numCols + col];
+            if (v == MISSING_VALUE)
+                data[row * numCols + col] = fillValue;
+        }
+    }
+}
+
 void MatrixData::imputeMissingValues()
 {
     // Compute means, ignoring missing values

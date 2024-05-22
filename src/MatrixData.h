@@ -11,6 +11,8 @@ class MatrixData
 {
 public:
     void removeRow(int row);
+
+    void fillMissingValues(float fillValue);
     void imputeMissingValues();
 
     std::vector<QString> headers;
