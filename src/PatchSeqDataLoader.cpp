@@ -38,40 +38,6 @@ using namespace mv::gui;
 
 namespace
 {
-    void readDataFrame(DataFrame& df, QString fileName)
-    {
-        QFile file(fileName);
-
-        bool header = true;
-        if (!file.open(QIODevice::ReadOnly))
-        {
-            throw DataLoadException(fileName, "File was not found at location.");
-        }
-
-        QTextStream in(&file);
-
-        while (!in.atEnd())
-        {
-            QString line = in.readLine();
-
-            QStringList tokens = line.split(",");
-            if (header)
-            {
-                df.setHeaders(tokens);
-                header = false;
-                continue;
-            }
-
-            std::vector<QString> row(tokens.size());
-            for (int i = 0; i < tokens.size(); i++)
-                row[i] = tokens[i];
-                
-            df.getData().push_back(row);
-        }
-
-        file.close();
-    }
-
     void removeRows(DataFrame& df, const std::vector<int>& rowsToDelete, MatrixData& matrix)
     {
         int rowsRemoved = 0;
@@ -267,12 +233,12 @@ void PatchSeqDataLoader::loadData()
     qDebug() << "Reading taxonomy annotations from file..";
     //Taxonomy taxonomy = Taxonomy::fromJsonFile();
     //taxonomy.printTree();
-    readDataFrame(_taxonomyDf, ":met_loader/hodge_taxonomy.csv");
+    _taxonomyDf.readFromFile(":met_loader/hodge_taxonomy.csv");
 
     qDebug() << "Loading CSV file: " << filePaths.metadataFilePath;
 
     // Read metadata file
-    readDataFrame(_metadata, filePaths.metadataFilePath);
+    _metadata.readFromFile(filePaths.metadataFilePath);
     _metadata.removeDuplicateRows(CELL_ID_TAG);
 
     // Read gene expression file

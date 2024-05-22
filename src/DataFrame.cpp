@@ -1,6 +1,10 @@
 #include "DataFrame.h"
 
+#include <LoaderPlugin.h>
+
 #include <QDebug>
+#include <QFile>
+#include <QTextStream>
 
 #include <unordered_map>
 #include <iostream>
@@ -28,6 +32,40 @@ QString DataFrame::getValue(int row, int col)
 std::vector<std::vector<QString>>& DataFrame::getData()
 {
     return _data;
+}
+
+void DataFrame::readFromFile(QString fileName)
+{
+    QFile file(fileName);
+
+    bool header = true;
+    if (!file.open(QIODevice::ReadOnly))
+    {
+        throw mv::plugin::DataLoadException(fileName, "File was not found at location.");
+    }
+
+    QTextStream in(&file);
+
+    while (!in.atEnd())
+    {
+        QString line = in.readLine();
+
+        QStringList tokens = line.split(",");
+        if (header)
+        {
+            setHeaders(tokens);
+            header = false;
+            continue;
+        }
+
+        std::vector<QString> row(tokens.size());
+        for (int i = 0; i < tokens.size(); i++)
+            row[i] = tokens[i];
+
+        _data.push_back(row);
+    }
+
+    file.close();
 }
 
 std::vector<int> DataFrame::findDuplicateRows(QString columnToCheck)
