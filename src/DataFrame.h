@@ -17,7 +17,10 @@ public:
     std::vector<std::vector<QString>>& getData();
 
     void addRow(std::vector<QString>& row) { _data.push_back(row); }
+    std::vector<int> findDuplicateRows(QString columnToCheck);
     void removeRow(int rowIndex);
+    void removeRows(const std::vector<int>& rowsToDelete);
+    void removeDuplicateRows(QString columnToCheck);
 
     void addHeader(QString header);
     void setHeaders(const QStringList& columnNames);

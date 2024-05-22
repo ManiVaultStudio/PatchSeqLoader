@@ -30,9 +30,50 @@ std::vector<std::vector<QString>>& DataFrame::getData()
     return _data;
 }
 
+std::vector<int> DataFrame::findDuplicateRows(QString columnToCheck)
+{
+    // Iterate over rows
+    std::vector<QString> column = (*this)[columnToCheck];
+
+    QSet<QString> uniqueRows;
+    std::vector<int> duplicateRows;
+    for (int i = 0; i < column.size(); i++)
+    {
+        if (!uniqueRows.contains(column[i]))
+            uniqueRows.insert(column[i]);
+        else
+            duplicateRows.push_back(i);
+    }
+
+    return duplicateRows;
+}
+
 void DataFrame::removeRow(int rowIndex)
 {
     _data.erase(_data.begin() + rowIndex);
+}
+
+void DataFrame::removeRows(const std::vector<int>& rowsToDelete)
+{
+    int rowsRemoved = 0;
+    // Delete bad rows from both the dataframe and the matrix
+    for (int rowToDelete : rowsToDelete)
+    {
+        rowToDelete -= rowsRemoved;
+        removeRow(rowToDelete);
+        rowsRemoved++;
+    }
+}
+
+void DataFrame::removeDuplicateRows(QString columnToCheck)
+{
+    std::vector<int> duplicateRows = findDuplicateRows(columnToCheck);
+    qDebug() << "Removing duplicate rows: " << duplicateRows.size();
+    for (int i = 0; i < duplicateRows.size(); i++)
+    {
+        qDebug() << (*this)[columnToCheck][duplicateRows[i]];
+    }
+    removeRows(duplicateRows);
 }
 
 void DataFrame::addHeader(QString header)

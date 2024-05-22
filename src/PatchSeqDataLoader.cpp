@@ -133,19 +133,6 @@ namespace
         std::chrono::duration<double> elapsed = finish - start;
         std::cout << "[PatchSeqDataLoader] " << fileName.toStdString() << " loaded in : " << elapsed.count() << " s\n";
     }
-    
-    void removeRows(DataFrame& df, const std::vector<int>& rowsToDelete)
-    {
-        int rowsRemoved = 0;
-        // Delete bad rows from both the dataframe and the matrix
-        for (int rowToDelete : rowsToDelete)
-        {
-            rowToDelete -= rowsRemoved;
-            df.removeRow(rowToDelete);
-            rowsRemoved++;
-        }
-    }
-
     void removeRows(DataFrame& df, const std::vector<int>& rowsToDelete, MatrixData& matrix)
     {
         int rowsRemoved = 0;
@@ -270,38 +257,9 @@ namespace
         }
     }
 
-    std::vector<int> findDuplicateRows(DataFrame& df, QString columnToCheck)
-    {
-        // Iterate over rows
-        std::vector<QString> column = df[columnToCheck];
-
-        QSet<QString> uniqueRows;
-        std::vector<int> duplicateRows;
-        for (int i = 0; i < column.size(); i++)
-        {
-            if (!uniqueRows.contains(column[i]))
-                uniqueRows.insert(column[i]);
-            else
-                duplicateRows.push_back(i);
-        }
-
-        return duplicateRows;
-    }
-
-    void removeDuplicateRows(DataFrame& df, QString columnToCheck)
-    {
-        std::vector<int> duplicateRows = findDuplicateRows(df, columnToCheck);
-        qDebug() << "Removing duplicate rows: " << duplicateRows.size();
-        for (int i = 0; i < duplicateRows.size(); i++)
-        {
-            qDebug() << df[columnToCheck][duplicateRows[i]];
-        }
-        removeRows(df, duplicateRows);
-    }
-
     void removeDuplicateRows(DataFrame& df, QString columnToCheck, MatrixData& matrix)
     {
-        std::vector<int> duplicateRows = findDuplicateRows(df, columnToCheck);
+        std::vector<int> duplicateRows = df.findDuplicateRows(columnToCheck);
         qDebug() << "Removing duplicate rows: " << duplicateRows.size();
         for (int i = 0; i < duplicateRows.size(); i++)
         {
@@ -420,7 +378,7 @@ void PatchSeqDataLoader::loadData()
 
     // Read metadata file
     readDataFrame(_metadata, filePaths.metadataFilePath);
-    removeDuplicateRows(_metadata, CELL_ID_TAG);
+    _metadata.removeDuplicateRows(CELL_ID_TAG);
 
     // Read gene expression file
     _task.setSubtaskStarted("Loading Transcriptomics");
@@ -544,7 +502,7 @@ void PatchSeqDataLoader::loadData()
     BiMap ephysBiMap;
     std::vector<uint32_t> ephysIndices(_ephysData->getNumPoints());
     std::iota(ephysIndices.begin(), ephysIndices.end(), 0);
-    removeDuplicateRows(ephys_metadata, CELL_ID_TAG);
+    ephys_metadata.removeDuplicateRows(CELL_ID_TAG);
     ephysBiMap.addKeyValuePairs(ephys_metadata[CELL_ID_TAG], ephysIndices);
     qDebug() << "Ephys: " << ephys_metadata[CELL_ID_TAG].size() << ephysIndices.size();
 
