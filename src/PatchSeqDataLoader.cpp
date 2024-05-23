@@ -378,6 +378,7 @@ void PatchSeqDataLoader::loadGeneExpressionData(QString filePath, const DataFram
     MatrixData matrixData;
     MatrixDataLoader matrixDataLoader;
     matrixDataLoader.LoadMatrixData(filePath, _transcriptomicsDf, matrixData, 3);
+    //matrixData.standardize();
 
     removeDuplicateRows(_transcriptomicsDf, CELL_ID_TAG, matrixData);
 
@@ -405,6 +406,7 @@ void PatchSeqDataLoader::loadEphysData(QString filePath, const DataFrame& metada
     removeRowsNotInMetadata(_ephysDf, CELL_ID_TAG, _metadata, matrixData);
     removeRowsWithAllDataMissing(_ephysDf, matrixData);
     matrixData.imputeMissingValues();
+    matrixData.standardize();
 
     _ephysDf.printFirstFewDimensionsOfDataFrame();
 
@@ -428,6 +430,7 @@ void PatchSeqDataLoader::loadMorphologyData(QString filePath, const DataFrame& m
 
     removeDuplicateRows(_morphologyDf, CELL_ID_TAG, matrixData);
     matrixData.fillMissingValues(0);
+    matrixData.standardize();
 
     _morphoData = mv::data().createDataset<Points>("Points", QFileInfo(filePath).baseName(), mv::Dataset<DatasetImpl>(), "", false);
     _morphoData->setProperty("PatchSeqType", "M");

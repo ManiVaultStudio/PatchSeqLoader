@@ -14,6 +14,7 @@ public:
 
     void fillMissingValues(float fillValue);
     void imputeMissingValues();
+    void standardize();
 
     std::vector<QString> headers;
     std::vector<float> data;

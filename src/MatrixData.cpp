@@ -49,3 +49,52 @@ void MatrixData::imputeMissingValues()
         }
     }
 }
+
+namespace
+{
+    // Function to compute the mean of each column
+    std::vector<float> computeColumnMeans(const std::vector<float>& matrix, int rows, int cols) {
+        std::vector<float> means(cols, 0.0f);
+        for (int c = 0; c < cols; ++c) {
+            float sum = 0.0f;
+            for (int r = 0; r < rows; ++r) {
+                sum += matrix[r * cols + c];
+            }
+            means[c] = sum / rows;
+        }
+        return means;
+    }
+
+    // Function to compute the standard deviation of each column
+    std::vector<float> computeColumnStdDevs(const std::vector<float>& matrix, const std::vector<float>& means, int rows, int cols) {
+        std::vector<float> stdDevs(cols, 0.0f);
+        for (int c = 0; c < cols; ++c) {
+            float sumSqDiffs = 0.0f;
+            for (int r = 0; r < rows; ++r) {
+                float diff = matrix[r * cols + c] - means[c];
+                sumSqDiffs += diff * diff;
+            }
+            stdDevs[c] = std::sqrt(sumSqDiffs / rows);
+        }
+        return stdDevs;
+    }
+}
+
+void MatrixData::standardize()
+{
+    std::vector<float> means = computeColumnMeans(data, numRows, numCols);
+    std::vector<float> stdDevs = computeColumnStdDevs(data, means, numRows, numCols);
+
+    for (int c = 0; c < numCols; ++c) {
+        for (int r = 0; r < numRows; ++r) {
+            int index = r * numCols + c;
+
+            if (stdDevs[c] != 0) {
+                data[index] = (data[index] - means[c]) / stdDevs[c];
+            }
+            else {
+                data[index] = data[index] - means[c]; // Avoid division by zero
+            }
+        }
+    }
+}
