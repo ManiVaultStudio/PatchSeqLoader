@@ -11,6 +11,7 @@ class MatrixData
 {
 public:
     void removeRow(int row);
+    void removeRows(const std::vector<int>& rowsToDelete);
 
     void fillMissingValues(float fillValue);
     void imputeMissingValues();

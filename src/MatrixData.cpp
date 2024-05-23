@@ -6,6 +6,18 @@ void MatrixData::removeRow(int row)
     numRows--;
 }
 
+void MatrixData::removeRows(const std::vector<int>& rowsToDelete)
+{
+    int rowsRemoved = 0;
+    // Delete bad rows from both the dataframe and the matrix
+    for (int rowToDelete : rowsToDelete)
+    {
+        rowToDelete -= rowsRemoved;
+        removeRow(rowToDelete);
+        rowsRemoved++;
+    }
+}
+
 void MatrixData::fillMissingValues(float fillValue)
 {
     // Compute means, ignoring missing values

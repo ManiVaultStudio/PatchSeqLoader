@@ -59,21 +59,6 @@ namespace
         }
     }
 
-    void removeRows(DataFrame& df, const std::vector<int>& rowsToDelete, MatrixData& matrix)
-    {
-        int rowsRemoved = 0;
-        // Delete bad rows from both the dataframe and the matrix
-        for (int rowToDelete : rowsToDelete)
-        {
-            rowToDelete -= rowsRemoved;
-            df.removeRow(rowToDelete);
-
-            // Remove row from matrix
-            matrix.removeRow(rowToDelete);
-            rowsRemoved++;
-        }
-    }
-
     void removeRowsNotInMetadata(DataFrame& df, QString columnToCheck, DataFrame& metadata, MatrixData& matrix)
     {
         std::vector<QString> metaColumn = metadata[columnToCheck];
@@ -98,7 +83,8 @@ namespace
         }
         qDebug() << "Removing " << rowsToRemove.size() << " rows because they are not found in metadata";
 
-        removeRows(df, rowsToRemove, matrix);
+        df.removeRows(rowsToRemove);
+        matrix.removeRows(rowsToRemove);
     }
 
     std::unordered_map<QString, std::vector<unsigned int>> makeClustersFromList(std::vector<QString> list)
@@ -136,7 +122,8 @@ namespace
             }
         }
 
-        removeRows(df, badRowIndices, matrix);
+        df.removeRows(badRowIndices);
+        matrix.removeRows(badRowIndices);
     }
 
     void removeDuplicateRows(DataFrame& df, QString columnToCheck, MatrixData& matrix)
@@ -147,7 +134,9 @@ namespace
         {
             qDebug() << df[columnToCheck][duplicateRows[i]];
         }
-        removeRows(df, duplicateRows, matrix);
+
+        df.removeRows(duplicateRows);
+        matrix.removeRows(duplicateRows);
     }
 }
 
