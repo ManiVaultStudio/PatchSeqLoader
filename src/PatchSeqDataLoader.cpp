@@ -1,5 +1,7 @@
 #include "PatchSeqDataLoader.h"
 
+#include "InputDialog.h"
+
 #include "MatrixDataLoader.h"
 #include "MatrixData.h"
 
@@ -222,12 +224,25 @@ void PatchSeqDataLoader::loadData()
 {
     Q_INIT_RESOURCE(met_loader_resources);
 
-    QDir dir = QFileDialog::getExistingDirectory(nullptr, tr("Open Directory"),
-        "/home", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+    InputDialog inputDialog(nullptr, *this);
+    inputDialog.setModal(true);
 
-    // Locate all the necessary patch-seq files
+    // open dialog and wait for user input
+    int ok = inputDialog.exec();
+
     PatchSeqFilePaths filePaths;
-    filePaths.locateFilePaths(dir);
+    QDir morphologiesDir;
+    if (ok == QDialog::Accepted)
+    {
+        filePaths.gexprFilePath = inputDialog.getTranscriptomicsFilePath();
+        filePaths.ephysFilePath = inputDialog.getElectrophysiologyFilePath();
+        filePaths.morphoFilePath = inputDialog.getMorphologyFilePath();
+        filePaths.metadataFilePath = inputDialog.getMetadataFilePath();
+        morphologiesDir = inputDialog.getMorphologiesDir();
+    }
+
+    //// Locate all the necessary patch-seq files
+    //filePaths.locateFilePaths(dir);
 
     if (!filePaths.allFilesLocated())
     {
@@ -317,7 +332,7 @@ void PatchSeqDataLoader::loadData()
     createClusterData(_metadata["tree_cluster"], "tree_cluster", metaDataset);
 
     qDebug() << ">>>>>>>>>>>>>> Loading morphology cells";
-    loadMorphologyCells(dir);
+    loadMorphologyCells(morphologiesDir);
 
     qDebug() << ">>>>>>>>>>>>>> Making selection group";
     // Make selection group
