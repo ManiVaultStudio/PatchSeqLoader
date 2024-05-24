@@ -43,6 +43,8 @@ set(PLUGIN_SOURCES
     src/DataFrame.cpp
     src/MatrixData.h
     src/MatrixData.cpp
+    src/InputDialog.h
+    src/InputDialog.cpp
     src/Taxonomy.h
     src/Taxonomy.cpp
     src/CellLoader.h
