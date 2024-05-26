@@ -1,5 +1,7 @@
 #include "MatrixData.h"
 
+#include <QDebug>
+
 void MatrixData::removeRow(int row)
 {
     data.erase(data.begin() + (row * numCols + 0), data.begin() + (row * numCols + numCols));
@@ -60,6 +62,32 @@ void MatrixData::imputeMissingValues()
                 data[row * numCols + col] = mean;
         }
     }
+}
+
+int MatrixData::getColumnIndex(QString columnName) const
+{
+    for (int i = 0; i < headers.size(); i++)
+    {
+        if (headers[i] == columnName)
+            return i;
+    }
+
+    qWarning() << "Could not find column with name: " << columnName;
+    return -1;
+}
+
+std::vector<float> MatrixData::operator[](QString columnName) const
+{
+    int columnIndex = getColumnIndex(columnName);
+
+    std::vector<float> column;
+
+    for (int row = 0; row < numRows; row++)
+    {
+        column.push_back(data[row * numCols + columnIndex]);
+    }
+
+    return column;
 }
 
 namespace

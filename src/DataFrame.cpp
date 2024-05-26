@@ -34,6 +34,20 @@ std::vector<std::vector<QString>>& DataFrame::getData()
     return _data;
 }
 
+int DataFrame::findRowWithColumnValue(QString columnName, QString value)
+{
+    int col = getColumnIndex(columnName);
+
+    for (int i = 0; i < numRows(); i++)
+    {
+        const QString& val = _data[i][col];
+        if (val == value)
+            return i;
+    }
+    qWarning() << "Failed to find value: " << value << " in column: " << columnName;
+    return -1;
+}
+
 void DataFrame::readFromFile(QString fileName)
 {
     QFile file(fileName);

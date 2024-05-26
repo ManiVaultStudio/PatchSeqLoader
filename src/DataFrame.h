@@ -16,6 +16,8 @@ public:
     const std::vector<QString>& getHeaders() const { return _headers; }
     std::vector<std::vector<QString>>& getData();
 
+    int findRowWithColumnValue(QString columnName, QString value);
+
     void readFromFile(QString fileName);
 
     void addRow(std::vector<QString>& row) { _data.push_back(row); }

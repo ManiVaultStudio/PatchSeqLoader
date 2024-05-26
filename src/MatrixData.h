@@ -17,6 +17,12 @@ public:
     void imputeMissingValues();
     void standardize();
 
+    std::vector<float> operator[](QString columnName) const;
+
+private:
+    int getColumnIndex(QString columnName) const;
+
+public:
     std::vector<QString> headers;
     std::vector<float> data;
     size_t numRows;
