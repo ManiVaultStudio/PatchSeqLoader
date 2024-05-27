@@ -429,7 +429,7 @@ void PatchSeqDataLoader::loadMorphologyData(QString filePath, const DataFrame& m
     qDebug() << "Loading morphology data..";
 
     MatrixData matrixData;
-    MatrixDataLoader matrixDataLoader;
+    MatrixDataLoader matrixDataLoader(true);
     matrixDataLoader.LoadMatrixData(filePath, _morphologyDf, matrixData, 1);
 
     removeDuplicateRows(_morphologyDf, CELL_ID_TAG, matrixData);
