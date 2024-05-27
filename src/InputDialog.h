@@ -57,7 +57,7 @@ protected:
     mv::gui::FilePickerAction       _ephysFilePicker;               /** File picker action */
     mv::gui::FilePickerAction       _morphoFilePicker;              /** File picker action */
     mv::gui::FilePickerAction       _metadataFilePicker;            /** File picker action */
-    mv::gui::DirectoryPickerAction  _morphologiesDirPicker;        /** File picker action */
+    mv::gui::DirectoryPickerAction  _morphologiesDirPicker;         /** File picker action */
 
     mv::gui::TriggerAction          _loadAction;                    /** Load action */
     mv::gui::GroupAction            _groupAction;                   /** Group action */
