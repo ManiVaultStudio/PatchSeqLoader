@@ -55,6 +55,11 @@ set(PLUGIN_SOURCES
     src/Taxonomy.cpp
     src/CellLoader.h
     src/CellLoader.cpp
+    src/Electrophysiology/NWBLoader.h
+    src/Electrophysiology/NWBLoader.cpp
+    src/Electrophysiology/Recording.h
+    src/Electrophysiology/Experiment.h
+    src/Electrophysiology/Experiment.cpp
     src/FeatureNames.h
     src/PatchSeqFilePaths.h
     src/PatchSeqFilePaths.cpp
