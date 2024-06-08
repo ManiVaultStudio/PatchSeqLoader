@@ -27,10 +27,16 @@ if(MSVC)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD")
 endif(MSVC)
 
+# Set path to CMake modules
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
 # -----------------------------------------------------------------------------
 # Dependencies
 # -----------------------------------------------------------------------------
 find_package(Qt6 COMPONENTS Widgets WebEngineWidgets REQUIRED)
+
+# HDF5 and ZLib dependencies
+include(HDF5Dependency)
 
 # -----------------------------------------------------------------------------
 # Source files
@@ -80,6 +86,8 @@ target_sources(${PROJECT_NAME} PRIVATE ${LOADER_MOC})
 # Target include directories
 # -----------------------------------------------------------------------------
 target_include_directories(${PROJECT_NAME} PRIVATE "${MV_INSTALL_DIR}/$<CONFIGURATION>/include/")
+target_include_directories(${PROJECT_NAME} PRIVATE ${HDF5_INCLUDE_DIR})
+target_include_directories(${PROJECT_NAME} PRIVATE ${LIBRARY_INSTALL_DIR}/zlib/$<CONFIG>/include)
 
 # -----------------------------------------------------------------------------
 # Target properties
@@ -106,6 +114,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE "${POINTDATA_LINK_LIBRARY}")
 target_link_libraries(${PROJECT_NAME} PRIVATE "${CLUSTERDATA_LINK_LIBRARY}")
 target_link_libraries(${PROJECT_NAME} PRIVATE "${TEXTDATA_LINK_LIBRARY}")
 target_link_libraries(${PROJECT_NAME} PRIVATE "${CELL_MORPHOLOGY_DATA_LINK_LIBRARY}")
+target_link_libraries(${PROJECT_NAME} PRIVATE ${HDF5_CXX_STATIC_LIBRARY} ${ZLIB_LIBRARIES})
 
 # -----------------------------------------------------------------------------
 # Target installation
