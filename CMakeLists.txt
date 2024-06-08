@@ -85,6 +85,7 @@ target_sources(${PROJECT_NAME} PRIVATE ${LOADER_MOC})
 # -----------------------------------------------------------------------------
 # Target include directories
 # -----------------------------------------------------------------------------
+target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
 target_include_directories(${PROJECT_NAME} PRIVATE "${MV_INSTALL_DIR}/$<CONFIGURATION>/include/")
 target_include_directories(${PROJECT_NAME} PRIVATE ${HDF5_INCLUDE_DIR})
 target_include_directories(${PROJECT_NAME} PRIVATE ${LIBRARY_INSTALL_DIR}/zlib/$<CONFIG>/include)
