@@ -8,6 +8,7 @@
 #include <PointData/PointData.h>
 #include <ClusterData/ClusterData.h>
 #include <TextData/TextData.h>
+#include <CellMorphologyData/CellMorphologyData.h>
 
 #include <Task.h>
 
@@ -64,6 +65,9 @@ private:
     DataFrame _morphologyDf;
     Dataset<Points> _morphoData;
     DataFrame _morphoMetadata;
+
+    // Cell morphology
+    Dataset<CellMorphologies> _cellMorphoData;
 
     mv::ModalTask _task;
 };

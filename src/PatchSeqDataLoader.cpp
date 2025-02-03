@@ -5,13 +5,14 @@
 #include "MatrixDataLoader.h"
 #include "MatrixData.h"
 
+#include "Electrophysiology/NWBLoader.h"
+
 #include "Taxonomy.h"
 #include "CellLoader.h"
 #include "FeatureNames.h"
 
 #include "csv.h"
 
-#include <CellMorphologyData/CellMorphologyData.h>
 #include <CellMorphologyData/CellMorphology.h>
 
 #include <Set.h>
@@ -34,6 +35,7 @@
 Q_PLUGIN_METADATA(IID "studio.manivault.PatchSeqDataLoader")
 
 #define CELL_ID_TAG "cell_id"
+#define METADATA_CLUSTER_LABEL "tree_cluster"
 
 using namespace mv;
 using namespace mv::gui;
@@ -153,12 +155,13 @@ PatchSeqDataLoader::~PatchSeqDataLoader(void)
 
 void PatchSeqDataLoader::init()
 {
-
+    NWBLoader loader;
+    loader.LoadNWB("D:/Dropbox/Julian/Patchseq/ProvidedData/000933/sub-1295011705/NWBv2.nwb");
 }
 
 void PatchSeqDataLoader::addTaxonomyClustersForDf(DataFrame& df, DataFrame& metadata, DataFrame& taxonomyDf, QString name, mv::Dataset<mv::DatasetImpl> parent)
 {
-    std::vector<QString> treeCluster = metadata["tree_cluster"];
+    std::vector<QString> treeCluster = metadata[METADATA_CLUSTER_LABEL];
 
     Dataset<Clusters> treeClusterData;
     treeClusterData = mv::data().createDataset<Points>("Cluster", name, parent);
@@ -329,7 +332,7 @@ void PatchSeqDataLoader::loadData()
     events().notifyDatasetAdded(metaDataset);
     events().notifyDatasetDataDimensionsChanged(metaDataset);
 
-    createClusterData(_metadata["tree_cluster"], "tree_cluster", metaDataset);
+    createClusterData(_metadata[METADATA_CLUSTER_LABEL], "tree_cluster", metaDataset);
 
     qDebug() << ">>>>>>>>>>>>>> Loading morphology cells";
     loadMorphologyCells(morphologiesDir);
@@ -367,10 +370,23 @@ void PatchSeqDataLoader::loadData()
     cellIdBiMap.addKeyValuePairs(_metadata[CELL_ID_TAG], cellIdIndices);
     qDebug() << "Metadata: " << _metadata[CELL_ID_TAG].size() << cellIdIndices.size();
 
+    // Morphology mapping
+    BiMap cellMorphologyBiMap;
+    std::vector<uint32_t> cmIndices(_cellMorphoData->getData().size());
+    std::iota(cmIndices.begin(), cmIndices.end(), 0);
+    QStringList cmCellIds = _cellMorphoData->getCellIdentifiers();
+    std::vector<QString> cmCellIdVector(cmCellIds.size());
+    for (int i = 0; i < cmCellIdVector.size(); i++)
+    {
+        cmCellIdVector[i] = cmCellIds[i];
+    }
+    cellMorphologyBiMap.addKeyValuePairs(cmCellIdVector, cmIndices);
+
     selectionGroup.addDataset(_geneExpressionData, gexprBiMap);
     selectionGroup.addDataset(_morphoData, morphBiMap);
     selectionGroup.addDataset(_ephysData, ephysBiMap);
     selectionGroup.addDataset(metaDataset, cellIdBiMap);
+    selectionGroup.addDataset(_cellMorphoData, cellMorphologyBiMap);
 
     events().addSelectionGroup(selectionGroup);
 }
@@ -432,6 +448,21 @@ void PatchSeqDataLoader::loadMorphologyData(QString filePath, const DataFrame& m
     MatrixDataLoader matrixDataLoader(true);
     matrixDataLoader.LoadMatrixData(filePath, _morphologyDf, matrixData, 1);
 
+    // Find 
+    std::vector<int> badRows;
+    badRows.push_back(_morphologyDf.findRowWithColumnValue("cell_id", "770268110"));
+    badRows.push_back(_morphologyDf.findRowWithColumnValue("cell_id", "774366284"));
+    badRows.push_back(_morphologyDf.findRowWithColumnValue("cell_id", "774380802"));
+    badRows.push_back(_morphologyDf.findRowWithColumnValue("cell_id", "1161609703"));
+    badRows.push_back(_morphologyDf.findRowWithColumnValue("cell_id", "1187944209"));
+    badRows.push_back(_morphologyDf.findRowWithColumnValue("cell_id", "1187963672"));
+    badRows.push_back(_morphologyDf.findRowWithColumnValue("cell_id", "1216147914"));
+
+    _morphologyDf.removeRows(badRows);
+    matrixData.removeRows(badRows);
+
+    std::vector<float> calc = matrixData["basal_dendrite_calculate_number_of_stems"];
+
     removeDuplicateRows(_morphologyDf, CELL_ID_TAG, matrixData);
     matrixData.fillMissingValues(0);
     matrixData.standardize();
@@ -455,8 +486,8 @@ void PatchSeqDataLoader::loadMorphologyData(QString filePath, const DataFrame& m
 void PatchSeqDataLoader::loadMorphologyCells(QDir dir)
 {
     // Load morphology cells
-    Dataset<CellMorphologies> cellMorphoData = mv::data().createDataset<CellMorphologies>("Cell Morphology Data", "cell_morphology", mv::Dataset<DatasetImpl>(), "", false);
-    cellMorphoData->setProperty("PatchSeqType", "Morphologies");
+    _cellMorphoData = mv::data().createDataset<CellMorphologies>("Cell Morphology Data", "cell_morphology", mv::Dataset<DatasetImpl>(), "", false);
+    _cellMorphoData->setProperty("PatchSeqType", "Morphologies");
 
     QDir morphologyDir(dir);
     morphologyDir.cd("SWC_Upright");
@@ -487,12 +518,12 @@ void PatchSeqDataLoader::loadMorphologyCells(QDir dir)
     std::chrono::duration<double> elapsed = finish - start;
     std::cout << "Loading Morphology elapsed time: " << elapsed.count() << " s\n";
 
-    cellMorphoData->setCellIdentifiers(cellIds);
-    cellMorphoData->setData(cellMorphologies);
+    _cellMorphoData->setCellIdentifiers(cellIds);
+    _cellMorphoData->setData(cellMorphologies);
 
-    events().notifyDatasetAdded(cellMorphoData);
-    events().notifyDatasetDataChanged(cellMorphoData);
-    events().notifyDatasetDataDimensionsChanged(cellMorphoData);
+    events().notifyDatasetAdded(_cellMorphoData);
+    events().notifyDatasetDataChanged(_cellMorphoData);
+    events().notifyDatasetDataDimensionsChanged(_cellMorphoData);
 }
 
 QIcon PatchSeqDataLoaderFactory::getIcon(const QColor& color /*= Qt::black*/) const

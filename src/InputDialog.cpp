@@ -16,7 +16,7 @@ InputDialog::InputDialog(QWidget* parent, PatchSeqDataLoader& plugin) :
     _groupAction(this, "Settings")
 {
     setWindowTitle(tr("Load Patch-seq Data"));
-
+    
     //_numberOfDimensionsAction.setDefaultWidgetFlags(IntegralAction::WidgetFlag::SpinBox);
 
     //QStringList pointDataTypes;
