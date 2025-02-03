@@ -155,8 +155,8 @@ PatchSeqDataLoader::~PatchSeqDataLoader(void)
 
 void PatchSeqDataLoader::init()
 {
-    NWBLoader loader;
-    loader.LoadNWB("D:/Dropbox/Julian/Patchseq/ProvidedData/000933/sub-1295011705/NWBv2.nwb");
+    //NWBLoader loader;
+    //loader.LoadNWB("D:/Dropbox/Julian/Patchseq/ProvidedData/000933/sub-1295011705/NWBv2.nwb");
 }
 
 void PatchSeqDataLoader::addTaxonomyClustersForDf(DataFrame& df, DataFrame& metadata, DataFrame& taxonomyDf, QString name, mv::Dataset<mv::DatasetImpl> parent)
