@@ -45,17 +45,20 @@ set(PLUGIN_SOURCES
     src/Taxonomy.cpp
     src/CellLoader.h
     src/CellLoader.cpp
-    src/Electrophysiology/NWBLoader.h
-    src/Electrophysiology/NWBLoader.cpp
-    src/Electrophysiology/Recording.h
-    src/Electrophysiology/Experiment.h
-    src/Electrophysiology/Experiment.cpp
     src/FeatureNames.h
     src/PatchSeqFilePaths.h
     src/PatchSeqFilePaths.cpp
     src/MatrixDataLoader.h
     src/MatrixDataLoader.cpp
     src/json.hpp
+)
+
+set(EPHYS_SOURCES
+    src/Electrophysiology/NWBLoader.h
+    src/Electrophysiology/NWBLoader.cpp
+    src/Electrophysiology/Recording.h
+    src/Electrophysiology/Experiment.h
+    src/Electrophysiology/Experiment.cpp
 )
 
 set(QRESOURCES
@@ -68,11 +71,12 @@ set(PLUGIN_MOC_HEADERS
 )
 
 source_group( Plugin FILES ${PLUGIN_SOURCES})
+source_group( Electrophysiology FILES ${EPHYS_SOURCES})
 
 # -----------------------------------------------------------------------------
 # CMake Target
 # -----------------------------------------------------------------------------
-add_library(${PROJECT_NAME} SHARED ${PLUGIN_SOURCES} ${RESOURCE_FILES})
+add_library(${PROJECT_NAME} SHARED ${PLUGIN_SOURCES} ${EPHYS_SOURCES} ${RESOURCE_FILES})
 
 qt_wrap_cpp(LOADER_MOC ${PLUGIN_MOC_HEADERS} TARGET ${PROJECT_NAME})
 target_sources(${PROJECT_NAME} PRIVATE ${LOADER_MOC})
