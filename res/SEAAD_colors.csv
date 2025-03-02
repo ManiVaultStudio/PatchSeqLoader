@@ -1,0 +1,150 @@
+labels,colors
+Astro_1,#d1c9baff
+Astro_2,#aaa395ff
+Astro_3,#847d71ff
+Astro_4,#5e574cff
+Astro_5,#383228ff
+Astro_6-SEAAD,#998a6bff
+Chandelier_1,#f87cc3ff
+Chandelier_2,#ad2d76ff
+Endo_1,#d8bfb8ff
+Endo_2,#b09a93ff
+Endo_3,#6d615eff
+L2/3 IT_1,#eef987ff
+L2/3 IT_10,#798c46ff
+L2/3 IT_12,#5f7438ff
+L2/3 IT_13,#536831ff
+L2/3 IT_2,#e1ec7fff
+L2/3 IT_3,#d4e078ff
+L2/3 IT_5,#bac86aff
+L2/3 IT_6,#adbc63ff
+L2/3 IT_7,#a0b05cff
+L2/3 IT_8,#93a454ff
+L4 IT_1,#8df2f7ff
+L4 IT_2,#72c3c7ff
+L4 IT_3,#579697ff
+L4 IT_4,#3c6868ff
+L5 ET_1,#67a8b2ff
+L5 ET_2,#0d5b78ff
+L5 ET_ME,#013955ff
+L5 IT_1,#b0dfe2ff
+L5 IT_2,#99c6c7ff
+L5 IT_3,#82adadff
+L5 IT_5,#547b79ff
+L5 IT_6,#3d625fff
+L5 IT_7,#264945ff
+L5/6 NP_1,#9fd4aeff
+L5/6 NP_2,#86ba96ff
+L5/6 NP_3,#6da17eff
+L5/6 NP_4,#538866ff
+L5/6 NP_6,#225637ff
+L6 CT_1,#81cde7ff
+L6 CT_2,#5fa3bcff
+L6 CT_3,#3d7a91ff
+L6 CT_4,#1b5166ff
+L6 IT Car3_1,#874fffff
+L6 IT Car3_2,#631affff
+L6 IT Car3_3,#23068cff
+L6 IT_1,#beb867ff
+L6 IT_2,#716c18ff
+L6b_1,#c7afd4ff
+L6b_2,#aa93bbff
+L6b_3,#8e77a3ff
+L6b_4,#715b8bff
+L6b_5,#553f73ff
+L6b_6,#39245bff
+Lamp5_1,#f9b7c3ff
+Lamp5_2,#da9ea8ff
+Lamp5_3,#bb848eff
+Lamp5_4,#9d6b74ff
+Lamp5_5,#7e525aff
+Lamp5_6,#603a40ff
+Lamp5_Lhx6_1,#b49186ff
+Micro-PVM_1,#cfe2d0ff
+Micro-PVM_1_1-SEAAD,#a2e2a5ff
+Micro-PVM_2,#94af97ff
+Micro-PVM_2_1-SEAAD,#71af78ff
+Micro-PVM_2_2-SEAAD,#4eaf59ff
+Micro-PVM_2_3-SEAAD,#2baf3aff
+Micro-PVM_3-SEAAD,#7f9381ff
+Micro-PVM_4-SEAAD,#abc6adff
+OPC_1,#75827fff
+OPC_2,#263430ff
+OPC_2_1-SEAAD,#4b675fff
+OPC_2_2-SEAAD,#719a8eff
+Oligo_1,#b2cec5ff
+Oligo_2,#799b8eff
+Oligo_2_1-SEAAD,#5a9b82ff
+Oligo_3,#4a6b61ff
+Oligo_4,#32443dff
+Pax6_1,#d38fefff
+Pax6_2,#9e65b5ff
+Pax6_3,#693b7bff
+Pax6_4,#341142ff
+Pvalb_1,#f97d86ff
+Pvalb_10,#8e3c43ff
+Pvalb_12,#772d34ff
+Pvalb_13,#6b262cff
+Pvalb_14,#5f1f25ff
+Pvalb_15,#54181eff
+Pvalb_2,#ed757eff
+Pvalb_3,#e16e77ff
+Pvalb_5,#c96068ff
+Pvalb_6,#be5860ff
+Pvalb_7,#b25159ff
+Pvalb_8,#a64a52ff
+Pvalb_9,#9a434aff
+Sncg_1,#e99cffff
+Sncg_2,#d58deaff
+Sncg_3,#c17ed6ff
+Sncg_4,#ad70c2ff
+Sncg_5,#9a61aeff
+Sncg_6,#86539aff
+Sncg_8,#5f3672ff
+Sst Chodl_1,#c9c958ff
+Sst Chodl_2,#7d7d08ff
+Sst_1,#ffb84fff
+Sst_10,#c68934ff
+Sst_11,#c08430ff
+Sst_12,#ba7f2eff
+Sst_13,#b47a2bff
+Sst_19,#8e5b19ff
+Sst_2,#f8b24cff
+Sst_20,#885616ff
+Sst_22,#7b4c10ff
+Sst_23,#75470cff
+Sst_25,#693d07ff
+Sst_3,#f2ad49ff
+Sst_4,#eca846ff
+Sst_5,#e6a343ff
+Sst_7,#d9993dff
+Sst_9,#cd8f37ff
+VLMC_1,#979e8aff
+VLMC_2,#4a503cff
+VLMC_2_1-SEAAD,#798362ff
+VLMC_2_2-SEAAD,#a8b688ff
+Vip_1,#e1b0f7ff
+Vip_11,#9b74adff
+Vip_12,#946ea6ff
+Vip_13,#8e689fff
+Vip_14,#876297ff
+Vip_15,#805c90ff
+Vip_16,#795689ff
+Vip_18,#6b4a7aff
+Vip_19,#644473ff
+Vip_2,#daaaefff
+Vip_21,#563864ff
+Vip_23,#492c56ff
+Vip_4,#cc9ee1ff
+Vip_5,#c598d9ff
+Vip_6,#be92d2ff
+Vip_9,#a980bcff
+L2/3 IT,#B1EC30
+L4 IT,#00E5E5
+L5 ET,#0D5B78
+L5 IT,#50B2AD
+L5/6 NP,#3E9E64
+L6 CT,#2D8CB8
+L6b,#7044AA
+L6 IT,#A19922
+L6 IT Car3,#5100FF

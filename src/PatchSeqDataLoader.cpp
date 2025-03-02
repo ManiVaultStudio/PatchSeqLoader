@@ -270,7 +270,8 @@ void PatchSeqDataLoader::loadData()
     qDebug() << "Reading taxonomy annotations from file..";
     //Taxonomy taxonomy = Taxonomy::fromJsonFile();
     //taxonomy.printTree();
-    _taxonomyDf.readFromFile(":met_loader/hodge_taxonomy.csv");
+    //_taxonomyDf.readFromFile(":met_loader/hodge_taxonomy.csv");
+    _taxonomyDf.readFromFile(":met_loader/SEAAD_colors.csv");
 
     qDebug() << "Loading CSV file: " << filePaths.metadataFilePath;
 

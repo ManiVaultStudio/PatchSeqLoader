@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="met_loader">
         <file>hodge_taxonomy.csv</file>
+        <file>SEAAD_colors.csv</file>
     </qresource>
 </RCC>
