@@ -170,15 +170,45 @@ void PatchSeqDataLoader::init()
 
 void PatchSeqDataLoader::addTaxonomyClustersForDf(DataFrame& df, DataFrame& metadata, DataFrame& taxonomyDf, QString name, mv::Dataset<mv::DatasetImpl> parent)
 {
-    std::vector<QString> treeCluster = metadata[METADATA_CLUSTER_LABEL];
+    // Get the available cluster labels from the metadata df
+    const std::vector<QString>& treeCluster = metadata[METADATA_CLUSTER_LABEL];
 
     Dataset<Clusters> treeClusterData;
     treeClusterData = mv::data().createDataset<Points>("Cluster", name, parent);
 
-    std::unordered_map<QString, std::vector<unsigned int>> clusterData = makeClustersFromList(treeCluster);
+    //std::unordered_map<QString, std::vector<unsigned int>> clusterData;
 
-    std::vector<QString> final_cluster_names = taxonomyDf["final cluster"];
-    std::vector<QString> final_cluster_colors = taxonomyDf["final cluster color"];
+    const std::vector<QString>& metadataCellIds = metadata[CELL_ID_TAG];
+    const std::vector<QString>& dataCellIds = df[CELL_ID_TAG];
+    std::vector<QString> clusterNames(dataCellIds.size());
+
+    // FIXME Do this more efficiently
+    for (int i = 0; i < dataCellIds.size(); i++)
+    {
+        const QString& cellId = dataCellIds[i];
+
+        bool foundMatch = false;
+        for (int j = 0; j < metadataCellIds.size(); j++)
+        {
+            const QString& metaCellId = metadataCellIds[j];
+
+            if (cellId == metaCellId)
+            {
+                clusterNames[i] = treeCluster.at(j);
+                foundMatch = true;
+            }
+        }
+        if (!foundMatch)
+        {
+            clusterNames[i] = "Undefined";
+        }
+    }
+
+    // Create a list of clusters and their indices from the list of cluster names
+    std::unordered_map<QString, std::vector<unsigned int>> clusterData = makeClustersFromList(clusterNames);
+
+    std::vector<QString> supertypeNames = taxonomyDf["labels"];
+    std::vector<QString> supertypeColors = taxonomyDf["colors"];
 
     for (auto& kv : clusterData)
     {
@@ -187,11 +217,11 @@ void PatchSeqDataLoader::addTaxonomyClustersForDf(DataFrame& df, DataFrame& meta
         cluster.setName(kv.first);
 
         bool found = false;
-        for (int i = 0; i < final_cluster_names.size(); i++)
+        for (int i = 0; i < supertypeNames.size(); i++)
         {
-            if (final_cluster_names[i] == kv.first)
+            if (supertypeNames[i] == kv.first)
             {
-                cluster.setColor(final_cluster_colors[i]);
+                cluster.setColor(supertypeColors[i]);
                 found = true;
                 //qDebug() << "Found attributes in taxonomy CSV!";
                 break;
@@ -355,14 +385,14 @@ void PatchSeqDataLoader::loadData()
     BiMap gexprBiMap;
     std::vector<uint32_t> gexprIndices(_geneExpressionData->getNumPoints());
     std::iota(gexprIndices.begin(), gexprIndices.end(), 0);
-    gexprBiMap.addKeyValuePairs(gexpr_metadata[CELL_ID_TAG], gexprIndices);
-    qDebug() << "Gexpr: " << gexpr_metadata[CELL_ID_TAG].size() << gexprIndices.size();
+    gexprBiMap.addKeyValuePairs(_transcriptomicsDf[CELL_ID_TAG], gexprIndices);
+    qDebug() << "Gexpr: " << _transcriptomicsDf[CELL_ID_TAG].size() << gexprIndices.size();
 
     // Morphology data
     BiMap morphBiMap;
     std::vector<uint32_t> morphoIndices(_morphoData->getNumPoints());
     std::iota(morphoIndices.begin(), morphoIndices.end(), 0);
-    morphBiMap.addKeyValuePairs(_morphoMetadata[CELL_ID_TAG], morphoIndices);
+    morphBiMap.addKeyValuePairs(_morphologyDf[CELL_ID_TAG], morphoIndices);
     qDebug() << "Morph: " << _morphoMetadata[CELL_ID_TAG].size() << morphoIndices.size();
 
     // Ephys data
@@ -370,7 +400,7 @@ void PatchSeqDataLoader::loadData()
     std::vector<uint32_t> ephysIndices(_ephysData->getNumPoints());
     std::iota(ephysIndices.begin(), ephysIndices.end(), 0);
     ephys_metadata.removeDuplicateRows(CELL_ID_TAG);
-    ephysBiMap.addKeyValuePairs(ephys_metadata[CELL_ID_TAG], ephysIndices);
+    ephysBiMap.addKeyValuePairs(_ephysDf[CELL_ID_TAG], ephysIndices);
     qDebug() << "Ephys: " << ephys_metadata[CELL_ID_TAG].size() << ephysIndices.size();
 
     // Cell ID data
