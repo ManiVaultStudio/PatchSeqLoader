@@ -36,7 +36,7 @@
 Q_PLUGIN_METADATA(IID "studio.manivault.PatchSeqDataLoader")
 
 #define CELL_ID_TAG "cell_id"
-#define METADATA_CLUSTER_LABEL "tree_cluster"
+#define METADATA_CLUSTER_LABEL "HANN_cluster_label_assignment_winner"
 
 using namespace mv;
 using namespace mv::gui;
