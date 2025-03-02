@@ -5,6 +5,7 @@
 #include "MatrixDataLoader.h"
 #include "MatrixData.h"
 
+#include "EphysData/Experiment.h"
 #include "Electrophysiology/NWBLoader.h"
 
 #include "Taxonomy.h"
@@ -155,8 +156,16 @@ PatchSeqDataLoader::~PatchSeqDataLoader(void)
 
 void PatchSeqDataLoader::init()
 {
-    //NWBLoader loader;
-    //loader.LoadNWB("D:/Dropbox/Julian/Patchseq/ProvidedData/000933/sub-1295011705/NWBv2.nwb");
+    Experiment experiment;
+    NWBLoader loader;
+    loader.LoadNWB("D:/Dropbox/Julian/Patchseq/Data_Original/000933/sub-1295011705/NWBv2.nwb", experiment);
+
+    _ephysTraces = mv::data().createDataset<EphysExperiments>("Electrophysiology Data", "EphysTraces");
+    _ephysTraces->addExperiment(std::move(experiment));
+    _ephysTraces->setProperty("PatchSeqType", "EphysTraces");
+
+    events().notifyDatasetAdded(_ephysTraces);
+    events().notifyDatasetDataChanged(_ephysTraces);
 }
 
 void PatchSeqDataLoader::addTaxonomyClustersForDf(DataFrame& df, DataFrame& metadata, DataFrame& taxonomyDf, QString name, mv::Dataset<mv::DatasetImpl> parent)

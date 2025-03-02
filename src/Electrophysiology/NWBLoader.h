@@ -2,10 +2,12 @@
 
 #include <QString>
 
+class Experiment;
+
 class NWBLoader
 {
 public:
-    void LoadNWB(QString fileName);
+    void LoadNWB(QString fileName, Experiment& experiment);
 private:
 
 };

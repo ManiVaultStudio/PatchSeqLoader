@@ -84,18 +84,20 @@ namespace
 
         FloatType type = dataset.getFloatType();
 
-        recording.data.resize(totalDataSize);
+        recording.data.ySeries.resize(totalDataSize);
         // Read the data
-        dataset.read(recording.data.data(), type);
+        dataset.read(recording.data.ySeries.data(), type);
+        recording.data.xSeries.resize(recording.data.ySeries.size());
+        std::iota(recording.data.xSeries.begin(), recording.data.xSeries.end(), 0);
+        std::transform(recording.data.xSeries.begin(), recording.data.xSeries.end(), recording.data.xSeries.begin(), [](auto& c) { return c / 1000.0f; });
+        recording.data.downsample();
 
         dataset.close();
     }
 }
 
-void NWBLoader::LoadNWB(QString fileName)
+void NWBLoader::LoadNWB(QString fileName, Experiment& experiment)
 {
-    Experiment experiment;
-
     H5File file(fileName.toStdString(), H5F_ACC_RDONLY);
 
     std::vector<std::string> groups;
@@ -112,14 +114,14 @@ void NWBLoader::LoadNWB(QString fileName)
             Recording recording;
             ReadTimeseries(file, group.toStdString(), recording);
 
-            experiment.addAcquisition(recording);
+            experiment.addAcquisition(std::move(recording));
         }
         if (group.startsWith("stimulus/presentation/"))
         {
             Recording recording;
             ReadTimeseries(file, group.toStdString(), recording);
 
-            experiment.addStimulus(recording);
+            experiment.addStimulus(std::move(recording));
         }
     }
 

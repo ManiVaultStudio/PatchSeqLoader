@@ -9,6 +9,7 @@
 #include <ClusterData/ClusterData.h>
 #include <TextData/TextData.h>
 #include <CellMorphologyData/CellMorphologyData.h>
+#include <EphysData/EphysData.h>
 
 #include <Task.h>
 
@@ -60,6 +61,9 @@ private:
     // Electrophysiology
     DataFrame _ephysDf;
     Dataset<Points> _ephysData;
+
+    // Ephys traces
+    Dataset<EphysExperiments> _ephysTraces;
 
     // Morphology
     DataFrame _morphologyDf;
