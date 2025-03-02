@@ -52,7 +52,8 @@ private:
     DataFrame _taxonomyDf;
 
     // Metadata
-    DataFrame _metadata;
+    DataFrame _metadataDf;
+    Dataset<Text> _metadata;
 
     // Gene expressions
     DataFrame _transcriptomicsDf;

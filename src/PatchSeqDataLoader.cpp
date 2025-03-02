@@ -276,25 +276,23 @@ void PatchSeqDataLoader::loadData()
     qDebug() << "Loading CSV file: " << filePaths.metadataFilePath;
 
     // Read metadata file
-    _metadata.readFromFile(filePaths.metadataFilePath);
-    _metadata.removeDuplicateRows(CELL_ID_TAG);
+    _metadataDf.readFromFile(filePaths.metadataFilePath);
+    _metadataDf.removeDuplicateRows(CELL_ID_TAG);
 
     // Read gene expression file
     _task.setSubtaskStarted("Loading Transcriptomics");
-    loadGeneExpressionData(filePaths.gexprFilePath, _metadata);
+    loadGeneExpressionData(filePaths.gexprFilePath, _metadataDf);
     _task.setSubtaskFinished("Loading Transcriptomics");
 
     // Read electrophysiology file
-    loadEphysData(filePaths.ephysFilePath, _metadata);
+    loadEphysData(filePaths.ephysFilePath, _metadataDf);
 
     // Subset and reorder the metadata
     qDebug() << "<<<<<<<<<<<<<<<<<<<<<< GEXPR";
-    DataFrame gexpr_metadata = DataFrame::subsetAndReorderByColumn(_metadata, _transcriptomicsDf, CELL_ID_TAG, CELL_ID_TAG);
+    DataFrame gexpr_metadata = DataFrame::subsetAndReorderByColumn(_metadataDf, _transcriptomicsDf, CELL_ID_TAG, CELL_ID_TAG);
     qDebug() << "<<<<<<<<<<<<<<<<<<<<<< EPHYS";
     // Subset and reorder the metadata
-    DataFrame ephys_metadata = DataFrame::subsetAndReorderByColumn(_metadata, _ephysDf, CELL_ID_TAG, CELL_ID_TAG);
-    qDebug() << "Ephys metadata: ";
-    qDebug() << ephys_metadata[CELL_ID_TAG];
+    DataFrame ephys_metadata = DataFrame::subsetAndReorderByColumn(_metadataDf, _ephysDf, CELL_ID_TAG, CELL_ID_TAG);
 
     // Add cluster meta data
     addTaxonomyClustersForDf(_transcriptomicsDf, gexpr_metadata, _taxonomyDf, QFileInfo(filePaths.gexprFilePath).baseName(), _geneExpressionData);
@@ -302,32 +300,34 @@ void PatchSeqDataLoader::loadData()
     // Add cluster meta data
     addTaxonomyClustersForDf(_ephysDf, ephys_metadata, _taxonomyDf, QFileInfo(filePaths.ephysFilePath).baseName(), _ephysData);
 
-    loadMorphologyData(filePaths.morphoFilePath, _metadata);
+    loadMorphologyData(filePaths.morphoFilePath, _metadataDf);
 
     _task.setFinished();
 
-    Dataset<Text> metaDataset;
-    metaDataset = mv::data().createDataset<Text>("Text", "cell_metadata", mv::Dataset<DatasetImpl>(), "", false);
-    metaDataset->setProperty("PatchSeqType", "Metadata");
+    //----------------------------------------------------------------------------------------------------------------------
+    // Make a metadata text dataset and adds its columns, tries to assign a proper header name if possible 
+    //----------------------------------------------------------------------------------------------------------------------
+    _metadata = mv::data().createDataset<Text>("Text", "cell_metadata", mv::Dataset<DatasetImpl>(), "", false);
+    _metadata->setProperty("PatchSeqType", "Metadata");
 
-    for (int i = 0; i < _metadata.getHeaders().size(); i++)
+    for (int i = 0; i < _metadataDf.getHeaders().size(); i++)
     {
-        const QString& header = _metadata.getHeaders()[i];
+        const QString& header = _metadataDf.getHeaders()[i];
 
         // Get a proper name if possible
         QString properHeaderName = header;
         if (properFeatureNames.find(header) != properFeatureNames.end())
             properHeaderName = properFeatureNames[header];
 
-        std::vector<QString> column = _metadata[header];
-        metaDataset->addColumn(properHeaderName, column);
+        std::vector<QString> column = _metadataDf[header];
+        _metadata->addColumn(properHeaderName, column);
     }
 
     // Take columns from ephys and morpho data and order them correctly, filling in missing data
     BiMap metadataBiMap;
-    std::vector<uint32_t> metaCellIdIndices(_metadata.numRows());
+    std::vector<uint32_t> metaCellIdIndices(_metadataDf.numRows());
     std::iota(metaCellIdIndices.begin(), metaCellIdIndices.end(), 0);
-    metadataBiMap.addKeyValuePairs(_metadata[CELL_ID_TAG], metaCellIdIndices);
+    metadataBiMap.addKeyValuePairs(_metadataDf[CELL_ID_TAG], metaCellIdIndices);
 
     std::vector<QString> ephysCellIdColumn = ephys_metadata[CELL_ID_TAG];
     std::vector<uint32_t> ephysToMetaIndices = metadataBiMap.getValuesByKeys(ephysCellIdColumn);
@@ -336,13 +336,13 @@ void PatchSeqDataLoader::loadData()
     std::vector<uint32_t> morphoToMetaIndices = metadataBiMap.getValuesByKeys(morphoCellIdColumn);
 
     // Add ephys and morpho data to metadata dataset
-    addPointsToTextDataset(_ephysData, metaDataset, ephysToMetaIndices);
-    addPointsToTextDataset(_morphoData, metaDataset, morphoToMetaIndices);
+    addPointsToTextDataset(_ephysData, _metadata, ephysToMetaIndices);
+    addPointsToTextDataset(_morphoData, _metadata, morphoToMetaIndices);
 
-    events().notifyDatasetAdded(metaDataset);
-    events().notifyDatasetDataDimensionsChanged(metaDataset);
+    events().notifyDatasetAdded(_metadata);
+    events().notifyDatasetDataDimensionsChanged(_metadata);
 
-    createClusterData(_metadata[METADATA_CLUSTER_LABEL], "tree_cluster", metaDataset);
+    createClusterData(_metadataDf[METADATA_CLUSTER_LABEL], "tree_cluster", _metadata);
 
     qDebug() << ">>>>>>>>>>>>>> Loading morphology cells";
     loadMorphologyCells(morphologiesDir);
@@ -375,10 +375,10 @@ void PatchSeqDataLoader::loadData()
 
     // Cell ID data
     BiMap cellIdBiMap;
-    std::vector<uint32_t> cellIdIndices(metaDataset->getNumRows());
+    std::vector<uint32_t> cellIdIndices(_metadata->getNumRows());
     std::iota(cellIdIndices.begin(), cellIdIndices.end(), 0);
-    cellIdBiMap.addKeyValuePairs(_metadata[CELL_ID_TAG], cellIdIndices);
-    qDebug() << "Metadata: " << _metadata[CELL_ID_TAG].size() << cellIdIndices.size();
+    cellIdBiMap.addKeyValuePairs(_metadataDf[CELL_ID_TAG], cellIdIndices);
+    qDebug() << "Metadata: " << _metadataDf[CELL_ID_TAG].size() << cellIdIndices.size();
 
     // Morphology mapping
     BiMap cellMorphologyBiMap;
@@ -395,7 +395,7 @@ void PatchSeqDataLoader::loadData()
     selectionGroup.addDataset(_geneExpressionData, gexprBiMap);
     selectionGroup.addDataset(_morphoData, morphBiMap);
     selectionGroup.addDataset(_ephysData, ephysBiMap);
-    selectionGroup.addDataset(metaDataset, cellIdBiMap);
+    selectionGroup.addDataset(_metadata, cellIdBiMap);
     selectionGroup.addDataset(_cellMorphoData, cellMorphologyBiMap);
 
     events().addSelectionGroup(selectionGroup);
@@ -433,7 +433,7 @@ void PatchSeqDataLoader::loadEphysData(QString filePath, const DataFrame& metada
     matrixDataLoader.LoadMatrixData(filePath, _ephysDf, matrixData, 2);
 
     removeDuplicateRows(_ephysDf, CELL_ID_TAG, matrixData);
-    removeRowsNotInMetadata(_ephysDf, CELL_ID_TAG, _metadata, matrixData);
+    removeRowsNotInMetadata(_ephysDf, CELL_ID_TAG, _metadataDf, matrixData);
     removeRowsWithAllDataMissing(_ephysDf, matrixData);
     matrixData.imputeMissingValues();
     matrixData.standardize();
