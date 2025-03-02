@@ -353,6 +353,9 @@ void PatchSeqDataLoader::loadData()
         _metadata->addColumn(properHeaderName, column);
     }
 
+    //----------------------------------------------------------------------------------------------------------------------
+    // Link up all the datasets
+    //----------------------------------------------------------------------------------------------------------------------
     // Take columns from ephys and morpho data and order them correctly, filling in missing data
     BiMap metadataBiMap;
     std::vector<uint32_t> metaCellIdIndices(_metadataDf.numRows());
@@ -403,6 +406,12 @@ void PatchSeqDataLoader::loadData()
     ephysBiMap.addKeyValuePairs(_ephysDf[CELL_ID_TAG], ephysIndices);
     qDebug() << "Ephys: " << ephys_metadata[CELL_ID_TAG].size() << ephysIndices.size();
 
+    // Ephys traces mapping
+    BiMap ephysTraceBiMap;
+    std::vector<uint32_t> ephysTraceIndices(ephys_metadata[CELL_ID_TAG].size());
+    std::iota(ephysTraceIndices.begin(), ephysTraceIndices.end(), 0);
+    ephysTraceBiMap.addKeyValuePairs(ephys_metadata[CELL_ID_TAG], ephysTraceIndices);
+
     // Cell ID data
     BiMap cellIdBiMap;
     std::vector<uint32_t> cellIdIndices(_metadata->getNumRows());
@@ -425,6 +434,7 @@ void PatchSeqDataLoader::loadData()
     selectionGroup.addDataset(_geneExpressionData, gexprBiMap);
     selectionGroup.addDataset(_morphoData, morphBiMap);
     selectionGroup.addDataset(_ephysData, ephysBiMap);
+    selectionGroup.addDataset(_ephysTraces, ephysTraceBiMap);
     selectionGroup.addDataset(_metadata, cellIdBiMap);
     selectionGroup.addDataset(_cellMorphoData, cellMorphologyBiMap);
 
