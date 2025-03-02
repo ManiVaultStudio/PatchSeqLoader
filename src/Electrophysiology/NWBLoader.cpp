@@ -1,7 +1,6 @@
 #include "NWBLoader.h"
 
-#include "Electrophysiology/Recording.h"
-#include "Electrophysiology/Experiment.h"
+#include "EphysData/Experiment.h"
 
 #include "H5Cpp.h"
 

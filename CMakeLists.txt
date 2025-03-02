@@ -56,9 +56,6 @@ set(PLUGIN_SOURCES
 set(EPHYS_SOURCES
     src/Electrophysiology/NWBLoader.h
     src/Electrophysiology/NWBLoader.cpp
-    src/Electrophysiology/Recording.h
-    src/Electrophysiology/Experiment.h
-    src/Electrophysiology/Experiment.cpp
 )
 
 set(QRESOURCES
@@ -102,6 +99,7 @@ set(PLUGIN_LINK_PATH "${ManiVault_INSTALL_DIR}/$<CONFIGURATION>/$<IF:$<CXX_COMPI
 set(MV_LINK_SUFFIX $<IF:$<CXX_COMPILER_ID:MSVC>,${CMAKE_LINK_LIBRARY_SUFFIX},${CMAKE_SHARED_LIBRARY_SUFFIX}>)
 
 set(CELL_MORPHOLOGY_DATA_LINK_LIBRARY "${PLUGIN_LINK_PATH}/${CMAKE_SHARED_LIBRARY_PREFIX}CellMorphologyData${MV_LINK_SUFFIX}")
+set(EPHYS_DATA_LINK_LIBRARY "${PLUGIN_LINK_PATH}/${CMAKE_SHARED_LIBRARY_PREFIX}EphysData${MV_LINK_SUFFIX}")
 
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets)
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::WebEngineWidgets)
@@ -113,6 +111,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE ManiVault::ClusterData)
 target_link_libraries(${PROJECT_NAME} PRIVATE ManiVault::TextData)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE "${CELL_MORPHOLOGY_DATA_LINK_LIBRARY}")
+target_link_libraries(${PROJECT_NAME} PRIVATE "${EPHYS_DATA_LINK_LIBRARY}")
 target_link_libraries(${PROJECT_NAME} PRIVATE ${HDF5_CXX_STATIC_LIBRARY} ${ZLIB_LIBRARIES})
 
 # -----------------------------------------------------------------------------
