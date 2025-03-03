@@ -274,6 +274,7 @@ void PatchSeqDataLoader::loadData()
 
     PatchSeqFilePaths filePaths;
     QDir morphologiesDir;
+    QDir ephysTracesDir;
     if (ok == QDialog::Accepted)
     {
         filePaths.gexprFilePath = inputDialog.getTranscriptomicsFilePath();
@@ -379,6 +380,9 @@ void PatchSeqDataLoader::loadData()
 
     qDebug() << ">>>>>>>>>>>>>> Loading morphology cells";
     loadMorphologyCells(morphologiesDir);
+
+    qDebug() << ">>>>>>>>>>>>>> Loading ephys cells";
+    loadEphysTraces(ephysTracesDir);
 
     qDebug() << ">>>>>>>>>>>>>> Making selection group";
     // Make selection group
@@ -574,6 +578,32 @@ void PatchSeqDataLoader::loadMorphologyCells(QDir dir)
     events().notifyDatasetAdded(_cellMorphoData);
     events().notifyDatasetDataChanged(_cellMorphoData);
     events().notifyDatasetDataDimensionsChanged(_cellMorphoData);
+}
+
+void PatchSeqDataLoader::loadEphysTraces(QDir dir)
+{
+    // Load morphology cells
+    _ephysTraces = mv::data().createDataset<EphysExperiments>("Electrophysiology Data", "EphysTraces", mv::Dataset<DatasetImpl>(), "", false);
+    _ephysTraces->setProperty("PatchSeqType", "EphysTraces");
+
+    QDir ephysTracesDir(dir);
+    ephysTracesDir.cd("NWB_Files");
+
+    QStringList nwbFiles = ephysTracesDir.entryList(QStringList() << "*.nwb" << "*.NWB", QDir::Files);
+
+    NWBLoader loader;
+
+    for (int i = 0; i < nwbFiles.size(); i++)
+    {
+        Experiment experiment;
+        qDebug() << "Loading NWB file: " << ephysTracesDir.filePath(nwbFiles[i]);
+        loader.LoadNWB(ephysTracesDir.filePath(nwbFiles[i]), experiment);
+
+        _ephysTraces->addExperiment(std::move(experiment));
+    }
+
+    events().notifyDatasetAdded(_ephysTraces);
+    events().notifyDatasetDataChanged(_ephysTraces);
 }
 
 QIcon PatchSeqDataLoaderFactory::getIcon(const QColor& color /*= Qt::black*/) const

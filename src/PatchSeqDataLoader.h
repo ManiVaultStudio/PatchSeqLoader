@@ -48,6 +48,8 @@ private:
     void loadEphysData(QString filePath, const DataFrame& metadata);
     void loadMorphologyData(QString filePath, const DataFrame& metadata);
     void loadMorphologyCells(QDir dir);
+    void loadEphysTraces(QDir dir);
+
 private:
     DataFrame _taxonomyDf;
 
