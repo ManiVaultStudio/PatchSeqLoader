@@ -284,9 +284,7 @@ void PatchSeqDataLoader::loadData()
         morphologiesDir = inputDialog.getMorphologiesDir();
     }
 
-    //// Locate all the necessary patch-seq files
-    //filePaths.locateFilePaths(dir);
-
+    // Locate all the necessary patch-seq files
     if (!filePaths.allFilesLocated())
     {
         qDebug() << "Failed to locate all of the necessary patch-seq files.";
@@ -515,8 +513,6 @@ void PatchSeqDataLoader::loadMorphologyData(QString filePath, const DataFrame& m
     _morphologyDf.removeRows(badRows);
     matrixData.removeRows(badRows);
 
-    std::vector<float> calc = matrixData["basal_dendrite_calculate_number_of_stems"];
-
     removeDuplicateRows(_morphologyDf, CELL_ID_TAG, matrixData);
     matrixData.fillMissingValues(0);
     matrixData.standardize();
@@ -544,7 +540,7 @@ void PatchSeqDataLoader::loadMorphologyCells(QDir dir)
     _cellMorphoData->setProperty("PatchSeqType", "Morphologies");
 
     QDir morphologyDir(dir);
-    morphologyDir.cd("SWC_Upright");
+    morphologyDir.cd("SWC_LayerAligned");
 
     QStringList swcFiles = morphologyDir.entryList(QStringList() << "*.swc" << "*.SWC", QDir::Files);
 
