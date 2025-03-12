@@ -212,6 +212,9 @@ void PatchSeqDataLoader::addTaxonomyClustersForDf(DataFrame& df, DataFrame& meta
         {
             if (supertypeNames[i] == kv.first)
             {
+                // RGBA hex, but Qt wants ARGB, so we need to swizzle, actually just remove alpha component, make it RGB
+                supertypeColors[i] = supertypeColors[i].left(7); // #RRGGBB
+
                 cluster.setColor(supertypeColors[i]);
                 found = true;
                 //qDebug() << "Found attributes in taxonomy CSV!";
