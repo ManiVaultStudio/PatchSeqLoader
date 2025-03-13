@@ -143,6 +143,18 @@ namespace
         df.removeRows(duplicateRows);
         matrix.removeRows(duplicateRows);
     }
+
+    void buildMapOfCellTypesColors(const DataFrame& taxonomyDf, QHash<QString, QColor>& cellTypeColors)
+    {
+        std::vector<QString> superTypeNames = taxonomyDf["labels"];
+        std::vector<QString> superTypeColors = taxonomyDf["colors"];
+
+        for (int i = 0; i < superTypeNames.size(); i++)
+        {
+            // Colors are in RGBA hex, but Qt wants ARGB, so we need to swizzle, actually just remove alpha component, make it RGB
+            cellTypeColors[superTypeNames[i]] = QColor(superTypeColors[i].left(7)); // #RRGGBB
+        }
+    }
 }
 
 // =============================================================================
@@ -164,8 +176,7 @@ void PatchSeqDataLoader::addTaxonomyClustersForDf(DataFrame& df, DataFrame& meta
     // Get the available cluster labels from the metadata df
     const std::vector<QString>& treeCluster = metadata[METADATA_CLUSTER_LABEL];
 
-    Dataset<Clusters> treeClusterData;
-    treeClusterData = mv::data().createDataset<Points>("Cluster", name, parent);
+    Dataset<Clusters> treeClusterData = mv::data().createDataset<Clusters>("Cluster", name, parent);
 
     //std::unordered_map<QString, std::vector<unsigned int>> clusterData;
 
@@ -198,33 +209,14 @@ void PatchSeqDataLoader::addTaxonomyClustersForDf(DataFrame& df, DataFrame& meta
     // Create a list of clusters and their indices from the list of cluster names
     std::unordered_map<QString, std::vector<unsigned int>> clusterData = makeClustersFromList(clusterNames);
 
-    std::vector<QString> supertypeNames = taxonomyDf["labels"];
-    std::vector<QString> supertypeColors = taxonomyDf["colors"];
-
     for (auto& kv : clusterData)
     {
         Cluster cluster;
 
         cluster.setName(kv.first);
 
-        bool found = false;
-        for (int i = 0; i < supertypeNames.size(); i++)
-        {
-            if (supertypeNames[i] == kv.first)
-            {
-                // RGBA hex, but Qt wants ARGB, so we need to swizzle, actually just remove alpha component, make it RGB
-                supertypeColors[i] = supertypeColors[i].left(7); // #RRGGBB
-
-                cluster.setColor(supertypeColors[i]);
-                found = true;
-                //qDebug() << "Found attributes in taxonomy CSV!";
-                break;
-            }
-        }
-        if (found == false)
-        {
-            qDebug() << "ERROR: Failed to find attributes in taxonomy CSV: " << kv.first;
-        }
+        if (_cellTypeColors.contains(cluster.getName()))
+            cluster.setColor(_cellTypeColors[cluster.getName()]);
 
         cluster.setIndices(kv.second);
 
@@ -295,6 +287,7 @@ void PatchSeqDataLoader::loadData()
     //taxonomy.printTree();
     //_taxonomyDf.readFromFile(":met_loader/hodge_taxonomy.csv");
     _taxonomyDf.readFromFile(":met_loader/SEAAD_colors.csv");
+    buildMapOfCellTypesColors(_taxonomyDf, _cellTypeColors);
 
     qDebug() << "Loading CSV file: " << filePaths.metadataFilePath;
 

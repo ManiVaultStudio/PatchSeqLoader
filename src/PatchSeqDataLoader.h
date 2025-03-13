@@ -13,6 +13,9 @@
 
 #include <Task.h>
 
+#include <QString>
+#include <QColor>
+
 using namespace mv::plugin;
 
 // =============================================================================
@@ -52,6 +55,7 @@ private:
 
 private:
     DataFrame _taxonomyDf;
+    QHash<QString, QColor> _cellTypeColors;
 
     // Metadata
     DataFrame _metadataDf;
