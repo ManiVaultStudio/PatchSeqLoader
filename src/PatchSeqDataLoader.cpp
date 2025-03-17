@@ -589,11 +589,6 @@ void PatchSeqDataLoader::loadEphysTraces(QDir dir)
     events().notifyDatasetDataChanged(_ephysTraces);
 }
 
-QIcon PatchSeqDataLoaderFactory::getIcon(const QColor& color /*= Qt::black*/) const
-{
-    return Application::getIconFont("FontAwesome").getIcon("database");
-}
-
 // =============================================================================
 // Factory
 // =============================================================================
