@@ -420,6 +420,28 @@ void PatchSeqDataLoader::loadData()
     }
     cellMorphologyBiMap.addKeyValuePairs(cmCellIdVector, cmIndices);
 
+    // Set cell morphology colors
+    {
+        QStringList ids = _cellMorphoData->getCellIdentifiers();
+        std::vector<QString> cellIds(ids.size());
+        for (int i = 0; i < ids.size(); i++)
+        {
+            cellIds[i] = ids[i];
+        }
+
+        std::vector<uint32_t> indices = cellIdBiMap.getValuesByKeys(cellIds);
+
+        std::vector<QString> clusterLabels = _metadataDf[METADATA_CLUSTER_LABEL];
+
+        for (int i = 0; i < indices.size(); i++)
+        {
+            QString label = clusterLabels[indices[i]];
+
+            QColor color = _cellTypeColors[label];
+            _cellMorphoData->getData()[i].cellTypeColor.set(color.redF(), color.greenF(), color.blueF());
+        }
+    }
+
     selectionGroup.addDataset(_geneExpressionData, gexprBiMap);
     selectionGroup.addDataset(_morphoData, morphBiMap);
     selectionGroup.addDataset(_ephysData, ephysBiMap);
