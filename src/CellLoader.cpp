@@ -67,6 +67,18 @@ void readCell(const std::string& contents, CellMorphology& cellMorphology)
         cellMorphology.idMap[id] = i;
     }
 
+    // Find soma
+    for (int i = 0; i < cellMorphology.ids.size(); i++)
+    {
+        mv::Vector3f position = cellMorphology.positions.at(i);
+
+        if (cellMorphology.types.at(i) == 1) // Soma
+        {
+            cellMorphology.somaPosition = position;
+            break;
+        }
+    }
+
     // Print headers
     //for (const auto& header : headers) {
     //    std::cout << header << "\t";
