@@ -529,6 +529,16 @@ void PatchSeqDataLoader::loadMorphologyData(QString filePath, const DataFrame& m
     _morphoData = mv::data().createDataset<Points>("Points", QFileInfo(filePath).baseName(), mv::Dataset<DatasetImpl>(), "", false);
     _morphoData->setProperty("PatchSeqType", "M");
     _morphoData->setData(matrixData.data, matrixData.numCols);
+
+    // Replace feature names with proper names
+    for (int i = 0; i < matrixData.headers.size(); i++)
+    {
+        QString& header = matrixData.headers[i];
+        if (properMorphologyFeatureNames.find(header) != properMorphologyFeatureNames.end())
+        {
+            header = properMorphologyFeatureNames[header];
+        }
+    }
     _morphoData->setDimensionNames(matrixData.headers);
 
     events().notifyDatasetAdded(_morphoData);
