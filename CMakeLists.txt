@@ -25,6 +25,8 @@ find_package(Qt6 COMPONENTS Widgets WebEngineWidgets REQUIRED)
 
 find_package(ManiVault COMPONENTS Core PointData ClusterData TextData CONFIG REQUIRED)
 
+find_package(LEAD CONFIG REQUIRED)
+
 # HDF5 and ZLib dependencies
 include(HDF5Dependency)
 
@@ -56,6 +58,7 @@ set(PLUGIN_SOURCES
 set(EPHYS_SOURCES
     src/Electrophysiology/NWBLoader.h
     src/Electrophysiology/NWBLoader.cpp
+    src/Electrophysiology/StimulusCodeMap.h
 )
 
 set(QRESOURCES
@@ -113,6 +116,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE ManiVault::TextData)
 target_link_libraries(${PROJECT_NAME} PRIVATE "${CELL_MORPHOLOGY_DATA_LINK_LIBRARY}")
 target_link_libraries(${PROJECT_NAME} PRIVATE "${EPHYS_DATA_LINK_LIBRARY}")
 target_link_libraries(${PROJECT_NAME} PRIVATE ${HDF5_CXX_STATIC_LIBRARY} ${ZLIB_LIBRARIES})
+
+target_link_libraries(${PROJECT_NAME} PRIVATE LEAD)
 
 # -----------------------------------------------------------------------------
 # Target installation

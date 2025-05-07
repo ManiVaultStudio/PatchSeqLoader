@@ -71,6 +71,7 @@ private:
 
     // Ephys traces
     Dataset<EphysExperiments> _ephysTraces;
+    std::vector<QString> _ephysTraceCellIds;
 
     // Morphology
     DataFrame _morphologyDf;

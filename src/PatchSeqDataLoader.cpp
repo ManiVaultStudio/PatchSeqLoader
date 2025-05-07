@@ -397,9 +397,9 @@ void PatchSeqDataLoader::loadData()
 
     // Ephys traces mapping
     BiMap ephysTraceBiMap;
-    std::vector<uint32_t> ephysTraceIndices(ephys_metadata[CELL_ID_TAG].size());
+    std::vector<uint32_t> ephysTraceIndices(_ephysTraceCellIds.size());
     std::iota(ephysTraceIndices.begin(), ephysTraceIndices.end(), 0);
-    ephysTraceBiMap.addKeyValuePairs(ephys_metadata[CELL_ID_TAG], ephysTraceIndices);
+    ephysTraceBiMap.addKeyValuePairs(_ephysTraceCellIds, ephysTraceIndices);
 
     // Cell ID data
     BiMap cellIdBiMap;
@@ -597,23 +597,46 @@ void PatchSeqDataLoader::loadMorphologyCells(QDir dir)
 
 void PatchSeqDataLoader::loadEphysTraces(QDir dir)
 {
-    // Load morphology cells
+    // Create ephys dataset
     _ephysTraces = mv::data().createDataset<EphysExperiments>("Electrophysiology Data", "EphysTraces", mv::Dataset<DatasetImpl>(), "", false);
     _ephysTraces->setProperty("PatchSeqType", "EphysTraces");
 
+    // Find all .nwb files in given directory
     QDir ephysTracesDir(dir);
-    ephysTracesDir.cd("NWB_Files");
+    ephysTracesDir.cd("nwb2_files");
 
     QStringList nwbFiles = ephysTracesDir.entryList(QStringList() << "*.nwb" << "*.NWB", QDir::Files);
 
-    NWBLoader loader;
+    // Map metadata cell names to cell_ids
+    std::vector<QString> metaCellSpecimenNames = _metadataDf["cell_specimen_name"];
+    std::vector<QString> metaCellIds = _metadataDf["cell_id"];
 
+    std::unordered_map<QString, QString> specimenNameToCellId;
+    for (size_t i = 0; i < metaCellSpecimenNames.size(); ++i)
+        specimenNameToCellId[metaCellSpecimenNames[i]] = metaCellIds[i];
+
+    qDebug() << "Found" << nwbFiles.size() << "NWB files, attempting to load them..";
+
+    // Load NWB files and add them to dataset
+    NWBLoader loader;
     for (int i = 0; i < nwbFiles.size(); i++)
     {
         Experiment experiment;
-        qDebug() << "Loading NWB file: " << ephysTracesDir.filePath(nwbFiles[i]);
-        loader.LoadNWB(ephysTracesDir.filePath(nwbFiles[i]), experiment);
 
+        QString fileName = nwbFiles[i];
+        
+        qDebug() << "Loading NWB file: " << ephysTracesDir.filePath(fileName);
+
+        loader.LoadNWB(ephysTracesDir.filePath(fileName), experiment);
+
+        QString specimenName = fileName;
+        specimenName.chop(4); // Cut off the .nwb part
+        qDebug() << "Specimen name: " << specimenName;
+        if (specimenNameToCellId.find(specimenName) == specimenNameToCellId.end())
+            continue;
+
+        _ephysTraceCellIds.push_back(specimenNameToCellId[specimenName]);
+        qDebug() << "Cell ID: " << _ephysTraceCellIds[_ephysTraceCellIds.size()-1];
         _ephysTraces->addExperiment(std::move(experiment));
     }
 
