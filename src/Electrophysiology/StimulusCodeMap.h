@@ -8,6 +8,7 @@ QSet<QString> USEFUL_STIM_CODES =
 {
     "subthreshold_171",
     "C1LSCOARSE150216",
+    "C1LSCOARSEMICRO",
     "C1LSFINEST150112",
     "C1LSFINESTMICRO",
     "X1PS_SubThresh",

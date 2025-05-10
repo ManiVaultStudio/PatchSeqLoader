@@ -140,10 +140,12 @@ namespace
 
         std::transform(recording.GetData().xSeries.begin(), recording.GetData().xSeries.end(), recording.GetData().xSeries.begin(), [](auto& c) { return c / 1000.0f; });
         recording.GetData().downsample();
+        recording.GetData().trim();
+        recording.GetData().computeExtents();
     }
 }
 
-void NWBLoader::LoadNWB(QString fileName, Experiment& experiment)
+void NWBLoader::LoadNWB(QString fileName, Experiment& experiment, LoadInfo& info)
 {
     NWBFile nwbFile;
     nwbFile.Load(fileName.toStdString());
@@ -153,10 +155,6 @@ void NWBLoader::LoadNWB(QString fileName, Experiment& experiment)
     bool written = false;
 
     float totalSize = 0;
-
-    // List of loaded vs. not loaded stim descriptions
-    QHash<QString, int> ignoredStimsets;
-    QHash<QString, int> loadedStimsets;
 
     QHash<QString, RecordingPair> recordingPairs;
     ExtractRecordings(groups, recordingPairs);
@@ -175,18 +173,18 @@ void NWBLoader::LoadNWB(QString fileName, Experiment& experiment)
         if (!USEFUL_STIM_CODES.contains(stimDescription))
         {
             //qWarning() << "Not loading recordings because stimulus description was: " << stimDescription; // TEMP
-            if (!ignoredStimsets.contains(stimDescription))
-                ignoredStimsets[stimDescription] = 1;
+            if (!info.ignoredStimsets.contains(stimDescription))
+                info.ignoredStimsets[stimDescription] = 1;
             else
-                ignoredStimsets[stimDescription]++;
+                info.ignoredStimsets[stimDescription]++;
             continue;
         }
         else
         {
-            if (!loadedStimsets.contains(stimDescription))
-                loadedStimsets[stimDescription] = 1;
+            if (!info.loadedStimsets.contains(stimDescription))
+                info.loadedStimsets[stimDescription] = 1;
             else
-                loadedStimsets[stimDescription]++;
+                info.loadedStimsets[stimDescription]++;
         }
 
         //if (STIMULUS_CODE_NAME_MAP.contains(stimDescription))
@@ -343,8 +341,7 @@ void NWBLoader::LoadNWB(QString fileName, Experiment& experiment)
     qDebug() << ">>>>>>>> NUM ACQUISITIONS: " << experiment.getAcquisitions().size();
     qDebug() << ">>>>>>>> NUM STIMULI: " << experiment.getStimuli().size();
     std::cout << "Size: " << totalSize << "MB" << std::endl;
-    qDebug() << "Ignored stimsets: " << ignoredStimsets;
-    qDebug() << "Loaded stimsets: " << loadedStimsets;
+
     //if (experiment.getAcquisitions().size() > 0)
     //{
     //    const QHash<QString, QString>& attrs = experiment.getAcquisitions()[0].GetAttributes();

@@ -263,11 +263,18 @@ void PatchSeqDataLoader::loadData()
     QDir ephysTracesDir;
     if (ok == QDialog::Accepted)
     {
-        filePaths.gexprFilePath = inputDialog.getTranscriptomicsFilePath();
-        filePaths.ephysFilePath = inputDialog.getElectrophysiologyFilePath();
-        filePaths.morphoFilePath = inputDialog.getMorphologyFilePath();
-        filePaths.metadataFilePath = inputDialog.getMetadataFilePath();
-        morphologiesDir = inputDialog.getMorphologiesDir();
+        //filePaths.gexprFilePath = "D:/Dropbox/Julian/Patchseq/ProvidedData/IDs_w_tc_data.csv";// inputDialog.getTranscriptomicsFilePath();
+        //filePaths.ephysFilePath = "D:/Dropbox/Julian/Patchseq/ProvidedData/allen_test_human_exc_simple_ephys.csv";// "D:/Dropbox/Julian/Patchseq/NewData/240928_human_exc_dataset_rsc369_ephys_data.csv";// inputDialog.getElectrophysiologyFilePath();
+        //filePaths.morphoFilePath = "D:/Dropbox/Julian/Patchseq/ProvidedData/allen_test_human_exc_simple_morpho.csv";// inputDialog.getMorphologyFilePath();
+        //filePaths.metadataFilePath = "D:/Dropbox/Julian/Patchseq/ProvidedData/allen_test_human_exc_metadata_simple.csv";// inputDialog.getMetadataFilePath();
+        //morphologiesDir = QDir("D:/Dropbox/Julian/Patchseq/ProvidedData/SWC_Upright"); //inputDialog.getMorphologiesDir();
+
+        filePaths.gexprFilePath = "D:/Dropbox/Julian/Patchseq/Data_Original/IDs_w_tc_data.csv";// inputDialog.getTranscriptomicsFilePath();
+        filePaths.ephysFilePath = "D:/Dropbox/Julian/Patchseq/Data_February_2025/Electrophysiology/ephys_features.csv";// "D:/Dropbox/Julian/Patchseq/NewData/240928_human_exc_dataset_rsc369_ephys_data.csv";// inputDialog.getElectrophysiologyFilePath();
+        filePaths.morphoFilePath = "D:/Dropbox/Julian/Patchseq/Data_February_2025/Morphology/dendrite_morphometric_features.csv";// inputDialog.getMorphologyFilePath();
+        filePaths.metadataFilePath = "D:/Dropbox/Julian/Patchseq/Data_February_2025/metadata_simple_MMC_11_6_24.csv";// inputDialog.getMetadataFilePath();
+        morphologiesDir = QDir("D:/Dropbox/Julian/Patchseq/Data_February_2025/Morphology/SWC_LayerAligned"); //inputDialog.getMorphologiesDir();
+        ephysTracesDir = QDir("D:/Dropbox/Julian/Patchseq/Data_May_2025/Electrophysiology/NWB_files");
     }
 
     // Locate all the necessary patch-seq files
@@ -420,6 +427,127 @@ void PatchSeqDataLoader::loadData()
     }
     cellMorphologyBiMap.addKeyValuePairs(cmCellIdVector, cmIndices);
 
+    // Ephys UMAP
+    {
+        MatrixData umapData;
+        MatrixDataLoader matrixDataLoader(false);
+        DataFrame umapDf;
+        matrixDataLoader.LoadMatrixData("D:/Dropbox/Julian/Patchseq/Data_February_2025/Electrophysiology/umap_2d_nn15_md0.1_ephys.csv", umapDf, umapData, 1);
+
+        // Reorder UMAP points according to parent dataset order
+        std::vector<uint32_t> parentOrder = ephysBiMap.getValuesByKeys(umapDf[CELL_ID_TAG]);
+        std::vector<float> reorderedData(umapData.data.size());
+        for (int i = 0; i < umapData.numRows; i++)
+        {
+            int parentIndex = parentOrder[i];
+            reorderedData[parentIndex * 2 + 0] = umapData.data[i * 2 + 0];
+            reorderedData[parentIndex * 2 + 1] = umapData.data[i * 2 + 1];
+        }
+
+        Dataset<Points> umapDataset = mv::data().createDerivedDataset("Ephys UMAP", _ephysData, _ephysData, false);
+        umapDataset->setData(reorderedData, umapData.numCols);
+        umapDataset->setDimensionNames(umapData.headers);
+
+        events().notifyDatasetAdded(umapDataset);
+        events().notifyDatasetDataChanged(umapDataset);
+    }
+
+    // Morphology UMAP
+    {
+        MatrixData umapData;
+        MatrixDataLoader matrixDataLoader(false);
+        DataFrame umapDf;
+        matrixDataLoader.LoadMatrixData("D:/Dropbox/Julian/Patchseq/Data_February_2025/Morphology/umap_2d_nn15_md0.1_morphometric_dendrite.csv", umapDf, umapData, 1);
+
+        // Reorder UMAP points according to parent dataset order
+        std::vector<uint32_t> parentOrder = morphBiMap.getValuesByKeys(umapDf[CELL_ID_TAG]);
+        std::vector<float> reorderedData(umapData.data.size());
+        for (int i = 0; i < umapData.numRows; i++)
+        {
+            int parentIndex = parentOrder[i];
+            reorderedData[parentIndex * 2 + 0] = umapData.data[i * 2 + 0];
+            reorderedData[parentIndex * 2 + 1] = umapData.data[i * 2 + 1];
+        }
+
+        // Create dataset
+        Dataset<Points> umapDataset = mv::data().createDerivedDataset("Morpho UMAP", _morphoData, _morphoData, false);
+        umapDataset->setData(reorderedData, umapData.numCols);
+        umapDataset->setDimensionNames(umapData.headers);
+
+        events().notifyDatasetAdded(umapDataset);
+        events().notifyDatasetDataChanged(umapDataset);
+    }
+
+    // Transcriptomics UMAP
+    {
+        MatrixData umapData;
+        MatrixDataLoader matrixDataLoader(true);
+        DataFrame umapDf;
+        matrixDataLoader.LoadMatrixData("D:/Dropbox/Julian/Patchseq/Data_February_2025/Transcriptomics/umap_seuratQC_mapping_results_SEAAD_NEW_Nov_19th_2024.csv", umapDf, umapData, 10);
+
+        // Create dataset
+        Dataset<Points> umapDataset = mv::data().createDataset("Points", "Tx UMAP", mv::Dataset<DatasetImpl>(), "", false);
+        umapDataset->setData(umapData.data, umapData.numCols);
+        umapDataset->setDimensionNames(umapData.headers);
+
+        events().notifyDatasetAdded(umapDataset);
+        events().notifyDatasetDataChanged(umapDataset);
+
+        // Transcriptomics UMAP BiMap
+        BiMap txUmapBiMap;
+        std::vector<uint32_t> indices(umapDf[CELL_ID_TAG].size());
+        std::iota(indices.begin(), indices.end(), 0);
+        txUmapBiMap.addKeyValuePairs(umapDf[CELL_ID_TAG], indices);
+
+        selectionGroup.addDataset(umapDataset, txUmapBiMap);
+
+        // Annotation metadata
+        {
+            // Create a list of clusters and their indices from the list of cluster names
+            Dataset<Clusters> clusterData = mv::data().createDataset<Clusters>("Cluster", "HANNtype", umapDataset);
+
+            const std::vector<QString>& clusterAsList = umapDf["HANNtype"];
+            std::unordered_map<QString, std::vector<unsigned int>> clusterMap = makeClustersFromList(clusterAsList);
+
+            for (auto& kv : clusterMap)
+            {
+                Cluster cluster;
+
+                cluster.setName(kv.first);
+                cluster.setIndices(kv.second);
+
+                if (_cellTypeColors.contains(cluster.getName()))
+                    cluster.setColor(_cellTypeColors[cluster.getName()]);
+
+                clusterData->addCluster(cluster);
+            }
+
+            mv::events().notifyDatasetDataChanged(clusterData);
+            mv::events().notifyDatasetDataDimensionsChanged(clusterData);
+        }
+        {
+            // Create a list of clusters and their indices from the list of cluster names
+            Dataset<Clusters> clusterData = mv::data().createDataset<Clusters>("Cluster", "platform", umapDataset);
+
+            const std::vector<QString>& clusterAsList = umapDf["platform"];
+            std::unordered_map<QString, std::vector<unsigned int>> clusterMap = makeClustersFromList(clusterAsList);
+
+            for (auto& kv : clusterMap)
+            {
+                Cluster cluster;
+
+                cluster.setName(kv.first);
+                cluster.setIndices(kv.second);
+
+                clusterData->addCluster(cluster);
+            }
+            Cluster::colorizeClusters(clusterData->getClusters(), 0);
+
+            mv::events().notifyDatasetDataChanged(clusterData);
+            mv::events().notifyDatasetDataDimensionsChanged(clusterData);
+        }
+    }
+
     // Set cell morphology colors
     {
         QStringList ids = _cellMorphoData->getCellIdentifiers();
@@ -485,7 +613,7 @@ void PatchSeqDataLoader::loadEphysData(QString filePath, const DataFrame& metada
 
     removeDuplicateRows(_ephysDf, CELL_ID_TAG, matrixData);
     removeRowsNotInMetadata(_ephysDf, CELL_ID_TAG, _metadataDf, matrixData);
-    removeRowsWithAllDataMissing(_ephysDf, matrixData);
+    //removeRowsWithAllDataMissing(_ephysDf, matrixData);
     matrixData.imputeMissingValues();
     matrixData.standardize();
 
@@ -550,6 +678,8 @@ void PatchSeqDataLoader::loadMorphologyData(QString filePath, const DataFrame& m
 
     // Add cluster meta data
     addTaxonomyClustersForDf(_morphologyDf, _morphoMetadata, _taxonomyDf, QFileInfo(filePath).baseName(), _morphoData);
+
+    qDebug() << "Successfully loaded" << _morphoData->getNumPoints() << "cell morphologies";
 }
 
 void PatchSeqDataLoader::loadMorphologyCells(QDir dir)
@@ -580,6 +710,7 @@ void PatchSeqDataLoader::loadMorphologyCells(QDir dir)
 
         cellMorphology.findCentroid();
         cellMorphology.findExtents();
+        cellMorphology.cellTypeColor.set(0.11f, 0.79f, 0);
 
         cellIds.append(QFileInfo(swcFile).baseName());
     }
@@ -618,6 +749,7 @@ void PatchSeqDataLoader::loadEphysTraces(QDir dir)
     qDebug() << "Found" << nwbFiles.size() << "NWB files, attempting to load them..";
 
     // Load NWB files and add them to dataset
+    LoadInfo loadInfo;
     NWBLoader loader;
     for (int i = 0; i < nwbFiles.size(); i++)
     {
@@ -627,7 +759,7 @@ void PatchSeqDataLoader::loadEphysTraces(QDir dir)
         
         qDebug() << "Loading NWB file: " << ephysTracesDir.filePath(fileName);
 
-        loader.LoadNWB(ephysTracesDir.filePath(fileName), experiment);
+        loader.LoadNWB(ephysTracesDir.filePath(fileName), experiment, loadInfo);
 
         QString specimenName = fileName;
         specimenName.chop(4); // Cut off the .nwb part
@@ -639,6 +771,9 @@ void PatchSeqDataLoader::loadEphysTraces(QDir dir)
         qDebug() << "Cell ID: " << _ephysTraceCellIds[_ephysTraceCellIds.size()-1];
         _ephysTraces->addExperiment(std::move(experiment));
     }
+
+    qDebug() << "Ignored stimsets: " << loadInfo.ignoredStimsets;
+    qDebug() << "Loaded stimsets: " << loadInfo.loadedStimsets;
 
     events().notifyDatasetAdded(_ephysTraces);
     events().notifyDatasetDataChanged(_ephysTraces);

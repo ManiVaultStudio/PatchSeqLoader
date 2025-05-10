@@ -1,0 +1,232 @@
+code,name
+EXTPGGAEND,Test
+EXTPGGAEND141203,Test
+S10_LPFine,Unknown
+EXTPEXPEND,Test
+EXTPEXPEND141203,Test
+S20_Blowout,Unknown
+newNoise2,Unknown
+S4_CellAttached,Unknown
+deltabliptest,Unknown
+S18_ExpEnd,Unknown
+LPreplacement,Unknown
+CCapcheck,Unknown
+S2_InBath,Unknown
+EXTPCllATT,Test
+EXTPCllATT141203,Test
+S19_GigaSeal,Unknown
+S5_AfterBreakIn,Unknown
+newNoise1,Unknown
+EXTPRSCHEK,Test
+EXTPRSCHEK150209,Test
+S7_BlipCoarse,Unknown
+newRamp,Unknown
+EXTPSMOKET,Test
+EXTPSMOKET141203,Test
+S8_BlipFine,Unknown
+RMPtoRHEO,Unknown
+EXTPSAFETY,Test
+EXTPSAFETY141203,Test
+EXTPINBATH,Test
+EXTPINBATH141203,Test
+EXTPBREAKN,Test
+EXTPBREAKN141203,Test
+C1SSFINEST,Short Square
+C1SSFINEST150112,Short Square
+TestPulse,Unknown
+S1_SmokeTest,Unknown
+VCLAMP_RNA_STIM,Test
+C1NSSEED_1,Noise
+C1NSSEED_1150216,Noise
+C1NSSEED_2,Noise
+C1NSSEED_2150112,Noise
+C1SSCOARSE,Short Square
+C1SSCOARSE150112,Short Square
+C1NSSEED_1,Noise
+C1NSSEED_1150217,Noise
+C1LSCOARSE,Long Square
+C1LSCOARSE150112,Long Square
+C1NSSEED_2,Noise
+C1NSSEED_2150216,Noise
+C1NSSEED_1,Noise
+C1NSSEED_1150112,Noise
+C1NSSEED_2,Noise
+C1NSSEED_2150217,Noise
+C1NSSEED_2,Noise
+C1NSSEED_2141203,Noise
+C1SSFINEST,Short Square
+C1SSFINEST141203,Short Square
+C1LSCOARSE,Long Square
+C1LSCOARSE150216,Long Square
+C1LSCOARSE,Long Square
+C1LSCOARSE150217,Long Square
+C1NSSEED_1,Noise
+C1NSSEED_1141203,Noise
+C1LSCOARSE,Long Square
+C1LSCOARSE141203,Long Square
+C1LSFINEST,Long Square
+C1LSFINEST150112,Long Square
+C1LSFINEST,Long Square
+C1LSFINEST141203,Long Square
+C1SSCOARSE,Short Square
+C1SSCOARSE141203,Short Square
+C1SQCAPCHK,Square - 0.5ms Subthreshold
+C1SQCAPCHK141203,Square - 0.5ms Subthreshold
+C1RP25PR1S,Ramp
+C1RP25PR1S141203,Ramp
+C1LSCOARSEMICRO,Long Square
+C1LSFINESTMICRO,Long Square
+C2NSRMPRHE,Ramp to Rheobase
+C2NSRMPRHE150112,Ramp to Rheobase
+C2SSHM80CS,Short Square
+C2SSHM80CS150112,Short Square
+C2NSRMPRH2,Ramp to Rheobase
+C2NSRMPRH2150119,Ramp to Rheobase
+C2SQRHELNG,Square - 2s Suprathreshold
+C2SQRHELNG141203,Square - 2s Suprathreshold
+C2NSRMPRH2,Ramp to Rheobase
+C2NSRMPRH2150120,Ramp to Rheobase
+C2SSHM80FN,Short Square
+C2SSHM80FN150112,Short Square
+C2NSRMPRHE,Ramp to Rheobase
+C2NSRMPRHE141203,Ramp to Rheobase
+C2SSHM80FN,Short Square
+C2SSHM80FN141203,Short Square
+C2SSHM70CS,Short Square
+C2SSHM70CS150126,Short Square
+C2SSHM80CS,Short Square
+C2SSHM80CS141203,Short Square
+C2SQRHELNG,Square - 2s Suprathreshold
+C2SQRHELNG150112,Square - 2s Suprathreshold
+C2SSTRIPLE,Short Square - Triple
+C2SSTRIPLE150429,Short Square - Triple
+C2SSHM60FN,Short Square
+C2SSHM60FN150112,Short Square
+C2SSHM60FN,Short Square
+C2SSHM60FN141203,Short Square
+C2SSHM60CS,Short Square
+C2SSHM60CS150112,Short Square
+C2SSTRIPLE,Short Square - Triple
+C2SSTRIPLE141203,Short Square - Triple
+C2SQRHELNG,Square - 2s Suprathreshold
+C2SQRHELNG150216,Square - 2s Suprathreshold
+C2SSHM60CS,Short Square
+C2SSHM60CS141203,Short Square
+C2NSRMPRH2,Ramp to Rheobase
+C2NSRMPRH2150217,Ramp to Rheobase
+C2SSHM70FN,Short Square
+C2SSHM70FN150126,Short Square
+C2NSRMPRH2,Ramp to Rheobase
+C2NSRMPRH2150216,Ramp to Rheobase
+EXTPBLWOUT,Test
+EXTPBLWOUT141203,Test
+Blip_finder,Test
+Rheobase_finder,Test
+subthresh_171,Unknown
+C2CHIRP,Unknown
+C2CHIRP171103,Unknown
+C1NSD1SHORT,Noise
+C1NSD1SHORT171103,Noise
+C2SSTRIPLE,Short Square - Triple
+C2SSTRIPLE171103,Short Square - Triple
+subthreshold_171,Long Square
+C2CHIRP,Unknown
+C2CHIRP171129,Unknown
+C2CHIRP,Unknown
+C2CHIRP180503,Unknown
+Nuc_IC_0,Unknown
+C1NSD1SHORT17110,Noise
+C1NSD2SHORT17110,Noise
+EXTPBREAKN,Test
+EXTPBREAKN180424,Test
+EXTPCllATT,Test
+EXTPCllATT180424,Test
+EXTPEXPEND,Test
+EXTPEXPEND180424,Test
+EXTPGGAEND,Test
+EXTPGGAEND180424,Test
+EXTPINBATH,Test
+EXTPINBATH180424,Test
+EXTPSMOKET,Test
+EXTPSMOKET180424,Test
+X1PS_SubThresh,Long Square
+NucVCtails,Test
+X3LP_Rheo,Long Square
+X4PS_SupraThresh,Long Square
+X6SP_Rheo,Short Square
+X7Ramp,Ramp
+Nuc_VC_LS,Test
+Nuc_VC_LS_Leak,Test
+Nuc_VC_prepulse_,Test
+Nuc_VC_Sus,Test
+Nuc_VC_Sus_Leak,Test
+Blank_pilot,Unknown
+X5SP_Search,Search
+Nuc_VC_Steps,Test
+Nuc_VC_Sustain,Test
+NucVCLS0,Test
+NucVCLS1Leak,Test
+NucVCprepulse,Test
+NucVCSus0,Test
+NucVCSus1Leak,Test
+Nuc_VC_Steps_50m,Test
+Nuc_VC_Steps_200,Test
+Nuc_VC_Steps_10m,Test
+Nuc_VC_Steps_100,Test
+Nuc_VC_STeps_250,Test
+Nuc_VC_Steps_25m,Test
+Nuc_VC_Steps_0ms,Test
+NucVCprepulse_,Test
+Nuc_VC_5,Test
+Nuc_VC_4,Test
+Nuc_VC_6,Test
+Nuc_VC_1,Test
+Nuc_VC_0,Test
+Nuc_VC_3,Test
+Nuc_VC_2,Test
+Ramp,Ramp
+LP_Rheo,Long Square
+RundownTest,Test
+PS_SubThresh,Long Square
+SP_Rheo,Short Square
+EXTPSMOKE180424_,Test
+RundownTestLong,Test
+Nuc_VC140,Test
+Nuc_LS,Test
+Nuc_Leak,Test
+Nuc_VC70,Test
+Nuc_Superthresho,Test
+Nuc_IC_1,Unknown
+Nuc_VC_10,Test
+Nuc_VC105,Test
+Nuc_VC35,Test
+PS_SupraThresh,Long Square
+Nuc_VC_Steps_250,Test
+longsquaretemp,Long Square
+shortsquaretemp,Short Square
+referenced,Unknown
+PulseTrain_20Hz,Unknown
+C2NSD1SHORT17110,Noise
+C2NSD2SHORT17110,Noise
+NucVCzrecovs1,Test
+NucVCzrecovms5,Test
+NucVCzrecovms100,Test
+X2LP_Search,Search
+SP_Search,Search
+LP_Search,Search
+NucVCQCLS,Test
+NucVCstails,Test
+C1LSCRESEP,Long Square
+C1LSCRESEP170313,Long Square
+C1SWCHRPEP,Unknown
+C1SWCHRPEP170821,Unknown
+X2LP,Unknown
+X3LP_Rheo2,Unknown
+subthreshold,Long Square
+Y2LP_Search,Search
+Y4PS_SupraThresh,Long Square
+Rheo_Supra_backu,Long Square
+Y3LP_Rheo,Long Square
+C1NSSEED,Noise
+C2CHIRPA,Chirp A Threshold
+C2CHIRPA180503,Chirp A Threshold
