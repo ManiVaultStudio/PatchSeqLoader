@@ -37,6 +37,7 @@ Q_PLUGIN_METADATA(IID "studio.manivault.PatchSeqDataLoader")
 
 #define CELL_ID_TAG "cell_id"
 #define METADATA_CLUSTER_LABEL "HANN_cluster_label_assignment_winner"
+#define METADATA_SUBCLASS_LABEL "HANN_subclass_label_assignment_winner"
 
 using namespace mv;
 using namespace mv::gui;
@@ -171,12 +172,12 @@ void PatchSeqDataLoader::init()
 
 }
 
-void PatchSeqDataLoader::addTaxonomyClustersForDf(DataFrame& df, DataFrame& metadata, DataFrame& taxonomyDf, QString name, mv::Dataset<mv::DatasetImpl> parent)
+void PatchSeqDataLoader::addTaxonomyClustersForDf(DataFrame& df, DataFrame& metadata, DataFrame& taxonomyDf, QString name, mv::Dataset<mv::DatasetImpl> parent, QString metaLabel)
 {
     // Get the available cluster labels from the metadata df
-    const std::vector<QString>& treeCluster = metadata[METADATA_CLUSTER_LABEL];
+    const std::vector<QString>& treeCluster = metadata[metaLabel];
 
-    Dataset<Clusters> treeClusterData = mv::data().createDataset<Clusters>("Cluster", name, parent);
+    Dataset<Clusters> treeClusterData = mv::data().createDataset<Clusters>("Cluster", properFeatureNames[metaLabel], parent);
 
     //std::unordered_map<QString, std::vector<unsigned int>> clusterData;
 
@@ -318,10 +319,12 @@ void PatchSeqDataLoader::loadData()
     DataFrame ephys_metadata = DataFrame::subsetAndReorderByColumn(_metadataDf, _ephysDf, CELL_ID_TAG, CELL_ID_TAG);
 
     // Add cluster meta data
-    addTaxonomyClustersForDf(_transcriptomicsDf, gexpr_metadata, _taxonomyDf, QFileInfo(filePaths.gexprFilePath).baseName(), _geneExpressionData);
+    addTaxonomyClustersForDf(_transcriptomicsDf, gexpr_metadata, _taxonomyDf, QFileInfo(filePaths.gexprFilePath).baseName(), _geneExpressionData, METADATA_CLUSTER_LABEL);
+    addTaxonomyClustersForDf(_transcriptomicsDf, gexpr_metadata, _taxonomyDf, QFileInfo(filePaths.gexprFilePath).baseName(), _geneExpressionData, METADATA_SUBCLASS_LABEL);
 
     // Add cluster meta data
-    addTaxonomyClustersForDf(_ephysDf, ephys_metadata, _taxonomyDf, QFileInfo(filePaths.ephysFilePath).baseName(), _ephysData);
+    addTaxonomyClustersForDf(_ephysDf, ephys_metadata, _taxonomyDf, QFileInfo(filePaths.ephysFilePath).baseName(), _ephysData, METADATA_CLUSTER_LABEL);
+    addTaxonomyClustersForDf(_ephysDf, ephys_metadata, _taxonomyDf, QFileInfo(filePaths.ephysFilePath).baseName(), _ephysData, METADATA_SUBCLASS_LABEL);
 
     loadMorphologyData(filePaths.morphoFilePath, _metadataDf);
 
@@ -677,7 +680,8 @@ void PatchSeqDataLoader::loadMorphologyData(QString filePath, const DataFrame& m
     _morphoMetadata = DataFrame::subsetAndReorderByColumn(metadata, _morphologyDf, CELL_ID_TAG, CELL_ID_TAG);
 
     // Add cluster meta data
-    addTaxonomyClustersForDf(_morphologyDf, _morphoMetadata, _taxonomyDf, QFileInfo(filePath).baseName(), _morphoData);
+    addTaxonomyClustersForDf(_morphologyDf, _morphoMetadata, _taxonomyDf, QFileInfo(filePath).baseName(), _morphoData, METADATA_CLUSTER_LABEL);
+    addTaxonomyClustersForDf(_morphologyDf, _morphoMetadata, _taxonomyDf, QFileInfo(filePath).baseName(), _morphoData, METADATA_SUBCLASS_LABEL);
 
     qDebug() << "Successfully loaded" << _morphoData->getNumPoints() << "cell morphologies";
 }
