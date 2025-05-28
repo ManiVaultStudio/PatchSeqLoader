@@ -24,6 +24,11 @@ using namespace mv::plugin;
 
 class PatchSeqDataLoader;
 
+namespace mv
+{
+    class BiMap;
+}
+
 // =============================================================================
 // View
 // =============================================================================
@@ -52,6 +57,7 @@ private:
     void loadMorphologyData(QString filePath, const DataFrame& metadata);
     void loadMorphologyCells(QDir dir);
     void loadEphysTraces(QDir dir);
+    void loadUMap(QString filePath, mv::Dataset<DatasetImpl> parent, QString datasetName, BiMap& bimap);
 
 private:
     DataFrame _taxonomyDf;

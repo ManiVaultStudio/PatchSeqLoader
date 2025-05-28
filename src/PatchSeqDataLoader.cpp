@@ -39,6 +39,10 @@ Q_PLUGIN_METADATA(IID "studio.manivault.PatchSeqDataLoader")
 #define METADATA_CLUSTER_LABEL "HANN_cluster_label_assignment_winner"
 #define METADATA_SUBCLASS_LABEL "HANN_subclass_label_assignment_winner"
 
+#define EPHYS_UMAP_PATH "D:/Dropbox/Julian/Patchseq/Data_February_2025/Electrophysiology/umap_2d_nn15_md0.1_ephys.csv"
+#define MORPHO_UMAP_PATH "D:/Dropbox/Julian/Patchseq/Data_February_2025/Morphology/umap_2d_nn15_md0.1_morphometric_dendrite.csv"
+#define TRANS_UMAP_PATH "D:/Dropbox/Julian/Patchseq/Data_February_2025/Transcriptomics/umap_seuratQC_mapping_results_SEAAD_NEW_Nov_19th_2024.csv"
+
 using namespace mv;
 using namespace mv::gui;
 
@@ -431,55 +435,10 @@ void PatchSeqDataLoader::loadData()
     cellMorphologyBiMap.addKeyValuePairs(cmCellIdVector, cmIndices);
 
     // Ephys UMAP
-    {
-        MatrixData umapData;
-        MatrixDataLoader matrixDataLoader(false);
-        DataFrame umapDf;
-        matrixDataLoader.LoadMatrixData("D:/Dropbox/Julian/Patchseq/Data_February_2025/Electrophysiology/umap_2d_nn15_md0.1_ephys.csv", umapDf, umapData, 1);
-
-        // Reorder UMAP points according to parent dataset order
-        std::vector<uint32_t> parentOrder = ephysBiMap.getValuesByKeys(umapDf[CELL_ID_TAG]);
-        std::vector<float> reorderedData(umapData.data.size());
-        for (int i = 0; i < umapData.numRows; i++)
-        {
-            int parentIndex = parentOrder[i];
-            reorderedData[parentIndex * 2 + 0] = umapData.data[i * 2 + 0];
-            reorderedData[parentIndex * 2 + 1] = umapData.data[i * 2 + 1];
-        }
-
-        Dataset<Points> umapDataset = mv::data().createDerivedDataset("Ephys UMAP", _ephysData, _ephysData, false);
-        umapDataset->setData(reorderedData, umapData.numCols);
-        umapDataset->setDimensionNames(umapData.headers);
-
-        events().notifyDatasetAdded(umapDataset);
-        events().notifyDatasetDataChanged(umapDataset);
-    }
+    loadUMap(EPHYS_UMAP_PATH, _ephysData, "Ephys UMAP", ephysBiMap);
 
     // Morphology UMAP
-    {
-        MatrixData umapData;
-        MatrixDataLoader matrixDataLoader(false);
-        DataFrame umapDf;
-        matrixDataLoader.LoadMatrixData("D:/Dropbox/Julian/Patchseq/Data_February_2025/Morphology/umap_2d_nn15_md0.1_morphometric_dendrite.csv", umapDf, umapData, 1);
-
-        // Reorder UMAP points according to parent dataset order
-        std::vector<uint32_t> parentOrder = morphBiMap.getValuesByKeys(umapDf[CELL_ID_TAG]);
-        std::vector<float> reorderedData(umapData.data.size());
-        for (int i = 0; i < umapData.numRows; i++)
-        {
-            int parentIndex = parentOrder[i];
-            reorderedData[parentIndex * 2 + 0] = umapData.data[i * 2 + 0];
-            reorderedData[parentIndex * 2 + 1] = umapData.data[i * 2 + 1];
-        }
-
-        // Create dataset
-        Dataset<Points> umapDataset = mv::data().createDerivedDataset("Morpho UMAP", _morphoData, _morphoData, false);
-        umapDataset->setData(reorderedData, umapData.numCols);
-        umapDataset->setDimensionNames(umapData.headers);
-
-        events().notifyDatasetAdded(umapDataset);
-        events().notifyDatasetDataChanged(umapDataset);
-    }
+    loadUMap(MORPHO_UMAP_PATH, _morphoData, "Morpho UMAP", morphBiMap);
 
     // Transcriptomics UMAP
     {
@@ -781,6 +740,32 @@ void PatchSeqDataLoader::loadEphysTraces(QDir dir)
 
     events().notifyDatasetAdded(_ephysTraces);
     events().notifyDatasetDataChanged(_ephysTraces);
+}
+
+void PatchSeqDataLoader::loadUMap(QString filePath, mv::Dataset<DatasetImpl> parent, QString datasetName, BiMap& bimap)
+{
+    MatrixData umapData;
+    MatrixDataLoader matrixDataLoader(false);
+    DataFrame umapDf;
+    matrixDataLoader.LoadMatrixData(filePath, umapDf, umapData, 1);
+
+    // Reorder UMAP points according to parent dataset order
+    std::vector<uint32_t> parentOrder = bimap.getValuesByKeys(umapDf[CELL_ID_TAG]);
+    std::vector<float> reorderedData(umapData.data.size());
+    for (int i = 0; i < umapData.numRows; i++)
+    {
+        int parentIndex = parentOrder[i];
+        reorderedData[parentIndex * 2 + 0] = umapData.data[i * 2 + 0];
+        reorderedData[parentIndex * 2 + 1] = umapData.data[i * 2 + 1];
+    }
+
+    // Create dataset
+    Dataset<Points> umapDataset = mv::data().createDerivedDataset(datasetName, parent, parent, false);
+    umapDataset->setData(reorderedData, umapData.numCols);
+    umapDataset->setDimensionNames(umapData.headers);
+
+    events().notifyDatasetAdded(umapDataset);
+    events().notifyDatasetDataChanged(umapDataset);
 }
 
 // =============================================================================
