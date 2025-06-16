@@ -12,6 +12,8 @@
 #include "Morphology/SWCLoader.h"
 #include "FeatureNames.h"
 
+#include <util/Timer.h>
+
 #include "csv.h"
 
 #include <CellMorphologyData/CellMorphology.h>
@@ -647,6 +649,8 @@ void PatchSeqDataLoader::loadMorphologyData(QString filePath, const DataFrame& m
 
 void PatchSeqDataLoader::loadMorphologyCells(QDir dir)
 {
+    Timer timer("SWC Morphology Loading");
+
     // Load morphology cells
     _cellMorphoData = mv::data().createDataset<CellMorphologies>("Cell Morphology Data", "cell_morphology", mv::Dataset<DatasetImpl>(), "", false);
     _cellMorphoData->setProperty("PatchSeqType", "Morphologies");
@@ -659,7 +663,6 @@ void PatchSeqDataLoader::loadMorphologyCells(QDir dir)
     QStringList cellIds;
     std::vector<CellMorphology> cellMorphologies(swcFiles.size());
 
-    auto start = std::chrono::high_resolution_clock::now();
     SWCLoader loader;
     for (int i = 0; i < cellMorphologies.size(); i++)
     {
@@ -674,9 +677,6 @@ void PatchSeqDataLoader::loadMorphologyCells(QDir dir)
 
         cellIds.append(QFileInfo(swcFile).baseName());
     }
-    auto finish = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = finish - start;
-    std::cout << "Loading Morphology elapsed time: " << elapsed.count() << " s\n";
 
     _cellMorphoData->setCellIdentifiers(cellIds);
     _cellMorphoData->setData(cellMorphologies);
