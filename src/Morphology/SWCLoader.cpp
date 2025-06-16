@@ -11,20 +11,26 @@
 #include <vector>
 #include <limits>
 
-void loadCellContentsFromFile(QString filePath, std::string& result)
+namespace
 {
-    std::ifstream file(filePath.toStdString());
+    void loadCellContentsFromFile(QString filePath, std::string& result)
+    {
+        std::ifstream file(filePath.toStdString());
 
-    if (file) {
-        std::ostringstream ss;
-        ss << file.rdbuf(); // reading data
-        result = ss.str();
+        if (file) {
+            std::ostringstream ss;
+            ss << file.rdbuf(); // reading data
+            result = ss.str();
+        }
     }
 }
 
-void readCell(const std::string& contents, CellMorphology& cellMorphology)
+void SWCLoader::LoadSWC(QString filePath, CellMorphology& cellMorphology)
 {
-    std::istringstream fileStream(contents);
+    std::string fileContents;
+    loadCellContentsFromFile(filePath, fileContents);
+
+    std::istringstream fileStream(fileContents);
     std::string line;
 
     // #n type x y z radius parent
@@ -78,48 +84,4 @@ void readCell(const std::string& contents, CellMorphology& cellMorphology)
             break;
         }
     }
-
-    // Print headers
-    //for (const auto& header : headers) {
-    //    std::cout << header << "\t";
-    //}
-
-    // Print data
-    //for (const auto& position : _positions) {
-    //    std::cout << position.str() << std::endl;
-    //}
-
-    //// Find centroid and extents
-    //mv::Vector3f avgPos;
-    //for (const auto& pos : cellMorphology.positions)
-    //    avgPos += pos;
-    //avgPos /= cellMorphology.positions.size();
-
-    //// Center cell positions
-    //for (auto& pos : cellMorphology.positions)
-    //    pos -= avgPos;
-
-    //// Find cell position ranges
-    //mv::Vector3f minV(std::numeric_limits<float>::max());
-    //mv::Vector3f maxV(-std::numeric_limits<float>::max());
-    //for (const auto& pos : cellMorphology.positions)
-    //{
-    //    if (pos.x < minV.x) minV.x = pos.x;
-    //    if (pos.y < minV.y) minV.y = pos.y;
-    //    if (pos.z < minV.z) minV.z = pos.z;
-    //    if (pos.x > maxV.x) maxV.x = pos.x;
-    //    if (pos.y > maxV.y) maxV.y = pos.y;
-    //    if (pos.z > maxV.z) maxV.z = pos.z;
-    //}
-    //mv::Vector3f range = (maxV - minV);
-    //float maxRange = std::max(std::max(range.x, range.y), range.z);
-    //// Rescale positions
-    //for (auto& pos : cellMorphology.positions)
-    //{
-    //    pos /= maxRange;
-    //}
-
-    //std::cout << maxRange << std::endl;
-    //std::cout << minV << std::endl;
-    //std::cout << maxV << std::endl;
 }

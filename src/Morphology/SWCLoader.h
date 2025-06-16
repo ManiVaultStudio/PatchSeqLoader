@@ -2,10 +2,12 @@
 
 #include <QString>
 
-#include <string>
-
 class CellMorphology;
 
-void loadCellContentsFromFile(QString filePath, std::string& result);
+class SWCLoader
+{
+public:
+    void LoadSWC(QString filePath, CellMorphology& cellMorphology);
+private:
 
-void readCell(const std::string& contents, CellMorphology& cellMorphology);
+};

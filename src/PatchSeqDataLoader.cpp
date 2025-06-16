@@ -660,16 +660,13 @@ void PatchSeqDataLoader::loadMorphologyCells(QDir dir)
     std::vector<CellMorphology> cellMorphologies(swcFiles.size());
 
     auto start = std::chrono::high_resolution_clock::now();
+    SWCLoader loader;
     for (int i = 0; i < cellMorphologies.size(); i++)
     {
         QString swcFile = swcFiles[i];
         CellMorphology& cellMorphology = cellMorphologies[i];
 
-        std::string fileContents;
-        loadCellContentsFromFile(morphologyDir.filePath(swcFile), fileContents);
-        //qDebug() << QString::fromStdString(fileContents);
-
-        readCell(fileContents, cellMorphology);
+        loader.LoadSWC(morphologyDir.filePath(swcFile), cellMorphology);
 
         cellMorphology.findCentroid();
         cellMorphology.findExtents();
