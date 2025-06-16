@@ -54,8 +54,8 @@ set(PLUGIN_SOURCES
 )
 
 set(MORPHOLOGY_SOURCES
-    src/Morphology/CellLoader.h
-    src/Morphology/CellLoader.cpp
+    src/Morphology/SWCLoader.h
+    src/Morphology/SWCLoader.cpp
 )
 
 set(EPHYS_SOURCES

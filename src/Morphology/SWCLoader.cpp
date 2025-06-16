@@ -1,4 +1,4 @@
-#include "CellLoader.h"
+#include "SWCLoader.h"
 
 #include "CellMorphologyData/CellMorphology.h"
 
