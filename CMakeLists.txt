@@ -45,14 +45,17 @@ set(PLUGIN_SOURCES
     src/InputDialog.cpp
     src/Taxonomy.h
     src/Taxonomy.cpp
-    src/CellLoader.h
-    src/CellLoader.cpp
     src/FeatureNames.h
     src/PatchSeqFilePaths.h
     src/PatchSeqFilePaths.cpp
     src/MatrixDataLoader.h
     src/MatrixDataLoader.cpp
     src/json.hpp
+)
+
+set(MORPHOLOGY_SOURCES
+    src/Morphology/CellLoader.h
+    src/Morphology/CellLoader.cpp
 )
 
 set(EPHYS_SOURCES
@@ -71,12 +74,13 @@ set(PLUGIN_MOC_HEADERS
 )
 
 source_group( Plugin FILES ${PLUGIN_SOURCES})
+source_group( Morphology FILES ${MORPHOLOGY_SOURCES})
 source_group( Electrophysiology FILES ${EPHYS_SOURCES})
 
 # -----------------------------------------------------------------------------
 # CMake Target
 # -----------------------------------------------------------------------------
-add_library(${PROJECT_NAME} SHARED ${PLUGIN_SOURCES} ${EPHYS_SOURCES} ${RESOURCE_FILES})
+add_library(${PROJECT_NAME} SHARED ${PLUGIN_SOURCES} ${MORPHOLOGY_SOURCES} ${EPHYS_SOURCES} ${RESOURCE_FILES})
 
 qt_wrap_cpp(LOADER_MOC ${PLUGIN_MOC_HEADERS} TARGET ${PROJECT_NAME})
 target_sources(${PROJECT_NAME} PRIVATE ${LOADER_MOC})

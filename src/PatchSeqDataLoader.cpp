@@ -9,7 +9,7 @@
 #include "Electrophysiology/NWBLoader.h"
 
 #include "Taxonomy.h"
-#include "CellLoader.h"
+#include "Morphology/CellLoader.h"
 #include "FeatureNames.h"
 
 #include "csv.h"
