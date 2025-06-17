@@ -12,7 +12,7 @@
 
 #include "csv.h"
 
-constexpr char DELIMITER = ',';
+const char* DELIMITER = ",";
 
 namespace
 {
@@ -64,19 +64,19 @@ namespace
         // Read metadata part
         for (int i = 0; i < numMetaColumns; i++)
         {
-            token = strtok(i == 0 ? line : NULL, &DELIMITER);
+            token = strtok(i == 0 ? line : NULL, DELIMITER);
             metadataRow[i] = token;
             metadataRow[i].replace("\"", "");
         }
 
         // Read the data part
-        token = strtok(NULL, &DELIMITER);
+        token = strtok(NULL, DELIMITER);
 
         while (token != NULL)
         {
             dataRow[colIndex++] = atof(token);
 
-            token = strtok(NULL, &DELIMITER);
+            token = strtok(NULL, DELIMITER);
         }
     }
 
@@ -87,7 +87,7 @@ namespace
         char* p = line;
         while (true)
         {
-            char* p2 = strchr(p, DELIMITER);
+            char* p2 = strchr(p, DELIMITER[0]);
             if (p2 != NULL)
                 *p2 = '\0';
 
