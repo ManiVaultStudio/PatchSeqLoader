@@ -23,6 +23,8 @@ namespace
             result = ss.str();
         }
     }
+
+
 }
 
 void SWCLoader::LoadSWC(QString filePath, CellMorphology& cellMorphology)
@@ -33,35 +35,41 @@ void SWCLoader::LoadSWC(QString filePath, CellMorphology& cellMorphology)
     std::istringstream fileStream(fileContents);
     std::string line;
 
-    // #n type x y z radius parent
-    while (getline(fileStream, line)) {
-        std::stringstream ss(line);
-        std::vector<std::string> row;
-        std::string value;
+    // Header format: #n type x y z radius parent
 
+    // Read file in line-by-line and tokenize it
+    while (getline(fileStream, line))
+    {
+        std::stringstream ss(line);
+
+        std::string token;
+
+        // Skip comments
         if (line.at(0) == '#')
             continue;
 
+        // Tokenize based on space delimiter
         int i = 0;
-        while (getline(ss, value, ' ')) {
-            //row.push_back(value);
+        while (getline(ss, token, ' '))
+        {
             switch (i)
             {
-            case 0: cellMorphology.ids.push_back(stoi(value)); break;
-            case 1: cellMorphology.types.push_back(stoi(value)); break;
+            case 0: cellMorphology.ids.push_back(stoi(token)); break;
+            case 1: cellMorphology.types.push_back(stoi(token)); break;
             case 2:
             {
-                float x = stof(value);
-                getline(ss, value, ' ');
-                float y = stof(value);
-                getline(ss, value, ' ');
-                float z = stof(value);
+                float x = stof(token);
+                getline(ss, token, ' ');
+                float y = stof(token);
+                getline(ss, token, ' ');
+                float z = stof(token);
                 cellMorphology.positions.emplace_back(x, y, z);
                 break;
             }
-            case 3: cellMorphology.radii.push_back(stof(value)); break;
-            case 4: cellMorphology.parents.push_back(stoi(value)); break;
+            case 3: cellMorphology.radii.push_back(stof(token)); break;
+            case 4: cellMorphology.parents.push_back(stoi(token)); break;
             }
+
             i++;
         }
     }
@@ -78,7 +86,7 @@ void SWCLoader::LoadSWC(QString filePath, CellMorphology& cellMorphology)
     {
         mv::Vector3f position = cellMorphology.positions.at(i);
 
-        if (cellMorphology.types.at(i) == 1) // Soma
+        if (cellMorphology.types.at(i) == (int) CellMorphology::Type::Soma)
         {
             cellMorphology.somaPosition = position;
             break;
