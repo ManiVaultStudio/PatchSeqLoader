@@ -604,12 +604,6 @@ void PatchSeqDataLoader::loadMorphologyData(QString filePath, const DataFrame& m
     // Find 
     std::vector<int> badRows;
     //badRows.push_back(_morphologyDf.findRowWithColumnValue("cell_id", "770268110"));
-    //badRows.push_back(_morphologyDf.findRowWithColumnValue("cell_id", "774366284"));
-    //badRows.push_back(_morphologyDf.findRowWithColumnValue("cell_id", "774380802"));
-    //badRows.push_back(_morphologyDf.findRowWithColumnValue("cell_id", "1161609703"));
-    //badRows.push_back(_morphologyDf.findRowWithColumnValue("cell_id", "1187944209"));
-    //badRows.push_back(_morphologyDf.findRowWithColumnValue("cell_id", "1187963672"));
-    //badRows.push_back(_morphologyDf.findRowWithColumnValue("cell_id", "1216147914"));
 
     _morphologyDf.removeRows(badRows);
     matrixData.removeRows(badRows);
