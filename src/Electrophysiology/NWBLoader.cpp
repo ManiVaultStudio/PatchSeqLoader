@@ -45,6 +45,17 @@ namespace
         file.close();
         std::cout << "Data exported to " << filename << std::endl;
     }
+
+    int extractSweepNumber(const QString& input)
+    {
+        QRegularExpression re("data_(\\d{5})_");
+        QRegularExpressionMatch match = re.match(input);
+        if (match.hasMatch()) {
+            QString numberStr = match.captured(1);
+            return numberStr.toInt();
+        }
+        return -1;  // or throw, depending on your use case
+    }
 }
 
 class RecordingPair
@@ -190,9 +201,16 @@ void NWBLoader::LoadNWB(QString fileName, Experiment& experiment, LoadInfo& info
         //if (STIMULUS_CODE_NAME_MAP.contains(stimDescription))
         //    stimDescription = STIMULUS_CODE_NAME_MAP[stimDescription];
 
+        // Extract sweep number
+        int acqSweepNumber = extractSweepNumber(QString::fromStdString(recordingPair.acquisition.GetName()));
+        int stimSweepNumber = extractSweepNumber(QString::fromStdString(recordingPair.stimulus.GetName()));
+
         // Recordings should be loaded, so store stimulus description in both recordings
         Recording acquisition;
         Recording stimulus;
+
+        acquisition.SetSweepNumber(acqSweepNumber);
+        stimulus.SetSweepNumber(stimSweepNumber);
 
         acquisition.SetStimulusDescription(stimDescription);
         stimulus.SetStimulusDescription(stimDescription);
