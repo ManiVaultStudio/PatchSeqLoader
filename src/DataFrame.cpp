@@ -1,5 +1,7 @@
 #include "DataFrame.h"
 
+#include "CSVReader.h"
+
 #include <LoaderPlugin.h>
 
 #include <QDebug>
@@ -7,6 +9,7 @@
 #include <QTextStream>
 
 #include <unordered_map>
+#include <sstream>
 #include <iostream>
 
 DataFrame::DataFrame()
@@ -52,34 +55,22 @@ void DataFrame::readFromFile(QString fileName)
 {
     QFile file(fileName);
 
-    bool header = true;
     if (!file.open(QIODevice::ReadOnly))
     {
         throw mv::plugin::DataLoadException(fileName, "File was not found at location.");
     }
 
     QTextStream in(&file);
-
-    while (!in.atEnd())
-    {
+    std::stringstream csvStream;
+    while (!in.atEnd()) {
         QString line = in.readLine();
-
-        QStringList tokens = line.split(",");
-        if (header)
-        {
-            setHeaders(tokens);
-            header = false;
-            continue;
-        }
-
-        std::vector<QString> row(tokens.size());
-        for (int i = 0; i < tokens.size(); i++)
-            row[i] = tokens[i];
-
-        _data.push_back(row);
+        csvStream << line.toStdString() << "\n";
     }
 
     file.close();
+
+    CSVReader reader;
+    reader.LoadCSV(csvStream, _headers, _data);
 }
 
 std::vector<int> DataFrame::findDuplicateRows(QString columnToCheck)
