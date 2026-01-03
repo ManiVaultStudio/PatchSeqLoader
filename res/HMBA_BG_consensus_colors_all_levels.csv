@@ -1,0 +1,62 @@
+Group,color_hex_group,Subclass,color_hex_subclass,Class,color_hex_class,Neighborhood,color_hex_neighborhood
+Astrocyte,#195f8d,Astrocyte,#401e66,Astro-Epen,#401e66,Nonneuron,#a8afa5
+ImAstro,#401e66,Astrocyte,#401e66,Astro-Epen,#401e66,Nonneuron,#a8afa5
+Ependymal,#564860,Ependymal,#564860,Astro-Epen,#401e66,Nonneuron,#a8afa5
+Microglia,#995C60,Microglia,#995C60,Immune,#995C60,Nonneuron,#a8afa5
+BAM,#CC887A,Macrophage,#CC887A,Immune,#995C60,Nonneuron,#a8afa5
+T cells,#5A662E,Lymphocyte,#5A662E,Immune,#995C60,Nonneuron,#a8afa5
+B cells,#999517,Lymphocyte,#5A662E,Immune,#995C60,Nonneuron,#a8afa5
+Monocyte,#C3CC7A,Monocyte,#C3CC7A,Immune,#995C60,Nonneuron,#a8afa5
+Oligo OPALIN,#66391F,Oligodendrocyte,#594a26,OPC-Oligo,#594a26,Nonneuron,#a8afa5
+Oligo PLEKHG1,#594a26,Oligodendrocyte,#594a26,OPC-Oligo,#594a26,Nonneuron,#a8afa5
+ImOligo,#CC915C,Oligodendrocyte,#594a26,OPC-Oligo,#594a26,Nonneuron,#a8afa5
+OPC,#f5e689,OPC,#f5e689,OPC-Oligo,#594a26,Nonneuron,#a8afa5
+COP,#CCA43D,COP,#CCA43D,OPC-Oligo,#594a26,Nonneuron,#a8afa5
+Endo,#66493D,Endo,#66493D,Vascular,#a8afa5,Nonneuron,#a8afa5
+Pericyte,#B97300,Pericyte,#B97300,Vascular,#a8afa5,Nonneuron,#a8afa5
+SMC,#858881,SMC,#858881,Vascular,#a8afa5,Nonneuron,#a8afa5
+VLMC,#a8afa5,VLMC,#a8afa5,Vascular,#a8afa5,Nonneuron,#a8afa5
+STH PVALB-PITX2 Glut,#f57e20,F Glut,#39e1e2,F M Glut,#7d0f09,Glut Sero Dopa,#91f4bb
+BF SKOR1 Glut,#eb0077,F Glut,#39e1e2,F M Glut,#7d0f09,Glut Sero Dopa,#91f4bb
+VTR-HTH Glut,#54621f,F M Glut,#66750b,F M Glut,#7d0f09,Glut Sero Dopa,#91f4bb
+SN-VTR CALB1 Dopa,#854098,M Dopa,#77f0ca,M Dopa,#0433b4,Glut Sero Dopa,#91f4bb
+SN SOX6 Dopa,#D7AAE4,M Dopa,#77f0ca,M Dopa,#0433b4,Glut Sero Dopa,#91f4bb
+SN-VTR GAD2 Dopa,#3EC918,M Dopa,#77f0ca,M Dopa,#0433b4,Glut Sero Dopa,#91f4bb
+LAMP5-LHX6 GABA,#00af88,CN LAMP5-LHX6 GABA,#f48d44,CN MGE GABA,#ce4c27,Subpallium GABA,#19613b
+STR-BF TAC3-PLPP4-LHX8 GABA,#9d3b4f,CN ST18 GABA,#5fd989,CN MGE GABA,#ce4c27,Subpallium GABA,#19613b
+STR TAC3-PLPP4 GABA,#21eef1,CN ST18 GABA,#5fd989,CN MGE GABA,#ce4c27,Subpallium GABA,#19613b
+STR FS PTHLH-PVALB GABA,#e16c95,CN ST18 GABA,#5fd989,CN MGE GABA,#ce4c27,Subpallium GABA,#19613b
+STR SST-CHODL GABA,#708297,STR SST-CHODL GABA,#eea495,CN MGE GABA,#ce4c27,Subpallium GABA,#19613b
+STR SST-ADARB2 GABA,#fde020,STR SST GABA,#ed8d40,CN MGE GABA,#ce4c27,Subpallium GABA,#19613b
+STR SST-RSPO2 GABA,#f3b79b,STR RSPO2 GABA,#5b0e63,CN MGE GABA,#ce4c27,Subpallium GABA,#19613b
+STR LYPD6-RSPO2 GABA,#488edc,STR RSPO2 GABA,#5b0e63,CN MGE GABA,#ce4c27,Subpallium GABA,#19613b
+STRd Cholinergic GABA,#a9f266,CN Cholinergic GABA,#b1f081,CN MGE GABA,#ce4c27,Subpallium GABA,#19613b
+STR Cholinergic GABA,#8f5ff5,CN Cholinergic GABA,#b1f081,CN MGE GABA,#ce4c27,Subpallium GABA,#19613b
+GPin-BF Cholinergic GABA,#6FC7B2,CN Cholinergic GABA,#b1f081,CN MGE GABA,#ce4c27,Subpallium GABA,#19613b
+LAMP5-CXCL14 GABA,#f6b5d1,CN LAMP5-CXCL14 GABA,#e5b672,CN CGE GABA,#26e8bb,Subpallium GABA,#19613b
+VIP GABA,#fc2b80,CN VIP GABA,#1bc06a,CN CGE GABA,#26e8bb,Subpallium GABA,#19613b
+GPe SOX6-CTXND1 GABA,#e9dc4d,CN LHX8 GABA,#caf28b,F M GABA,#cd0f13,Subpallium GABA,#19613b
+GPe-NDB-SI LHX6-LHX8-GBX1 GABA,#B2520E,CN LHX8 GABA,#caf28b,F M GABA,#cd0f13,Subpallium GABA,#19613b
+GPi Core,#d3489a,CN ONECUT1 GABA,#967be5,F M GABA,#cd0f13,Subpallium GABA,#19613b
+SN GATA3-PVALB GABA,#017d7c,F M GATA3 GABA,#311a96,F M GABA,#cd0f13,Subpallium GABA,#19613b
+SN GATA3-PAX8 GABA,#ff7266,F M GATA3 GABA,#311a96,F M GABA,#cd0f13,Subpallium GABA,#19613b
+SN-VTR-HTH GATA3-TCF7L2 GABA,#1dbfcf,F M GATA3 GABA,#311a96,F M GABA,#cd0f13,Subpallium GABA,#19613b
+SN EBF2 GABA,#c8df45,SN PAX7 GABA,#720a7d,F M GABA,#cd0f13,Subpallium GABA,#19613b
+SN SEMA5A GABA,#3604fb,SN PAX7 GABA,#720a7d,F M GABA,#cd0f13,Subpallium GABA,#19613b
+ZI-HTH GABA,#c49c94,F GABA,#7ba2df,F M GABA,#cd0f13,Subpallium GABA,#19613b
+AMY-SLEA-BNST D1 GABA,#9e86de,F GABA,#7ba2df,F M GABA,#cd0f13,Subpallium GABA,#19613b
+AMY-SLEA-BNST GABA,#b69e14,F GABA,#7ba2df,F M GABA,#cd0f13,Subpallium GABA,#19613b
+GPe MEIS2-SOX6 GABA,#937a2e,CN MEIS2 GABA,#d8f378,CN LGE GABA,#d0b83c,Subpallium GABA,#19613b
+STRd D1 Matrix MSN,#1f77b4,STR D1 MSN,#1655f2,CN LGE GABA,#d0b83c,Subpallium GABA,#19613b
+STRv D1 MSN,#339933,STR D1 MSN,#1655f2,CN LGE GABA,#d0b83c,Subpallium GABA,#19613b
+STRd D1 Striosome MSN,#d62728,STR D1 MSN,#1655f2,CN LGE GABA,#d0b83c,Subpallium GABA,#19613b
+STRd D2 Matrix MSN,#aec7e8,STR D2 MSN,#253c8c,CN LGE GABA,#d0b83c,Subpallium GABA,#19613b
+STRv D2 MSN,#98df8a,STR D2 MSN,#253c8c,CN LGE GABA,#d0b83c,Subpallium GABA,#19613b
+STRd D2 Striosome MSN,#ff9896,STR D2 MSN,#253c8c,CN LGE GABA,#d0b83c,Subpallium GABA,#19613b
+STRd D2 StrioMat Hybrid MSN,#5713c3,STR D2 MSN,#253c8c,CN LGE GABA,#d0b83c,Subpallium GABA,#19613b
+STRv D1 NUDAP MSN,#e377c2,STR Hybrid MSN,#79bdf4,CN LGE GABA,#d0b83c,Subpallium GABA,#19613b
+STR D1D2 Hybrid MSN,#9467bd,STR Hybrid MSN,#79bdf4,CN LGE GABA,#d0b83c,Subpallium GABA,#19613b
+OT D1 ICj,#ff7f0e,OT Granular GABA,#9160cb,CN LGE GABA,#d0b83c,Subpallium GABA,#19613b
+OB FRMD7 GABA,#cd0753,ACx MEIS2 GABA,#3636ed,Cx GABA,#ebb3a7,Subpallium GABA,#19613b
+OB Dopa-GABA,#902f6b,ACx MEIS2 GABA,#3636ed,Cx GABA,#ebb3a7,Subpallium GABA,#19613b
+GPi Shell,#642265,CN GABA-Glut,#d2599a,CN GABA-Glut,#1c8d83,Subpallium GABA-Glut,#7e1d19

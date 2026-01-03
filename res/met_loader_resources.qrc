@@ -2,5 +2,7 @@
     <qresource prefix="met_loader">
         <file>hodge_taxonomy.csv</file>
         <file>SEAAD_colors.csv</file>
+        <file>BG_colors.csv</file>
+        <file>HMBA_BG_consensus_colors_all_levels.csv</file>
     </qresource>
 </RCC>
