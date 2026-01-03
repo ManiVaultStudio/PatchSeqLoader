@@ -13,7 +13,19 @@ QSet<QString> USEFUL_STIM_CODES =
     "C1LSFINESTMICRO",
     "X1PS_SubThresh",
     "X3LP_Rheo",
-    "X4PS_SupraThresh"
+    "X4PS_SupraThresh",
+    "C2CHIRPA180503",
+    "X0NRMP",
+    "DA01_Chirp_20s",
+    "Ramp",
+    "C2CHIRPD180503",
+    "C2CHIRPB18050",
+    "C2CHIRPC18050",
+    "Chirp_20s",
+    "C2CHIRP180503",
+    "C2CHIRPC180503",
+    "C2CHIRPB180503",
+    "X7Ramp"
 };
 
 QHash<QString, QString> STIMULUS_CODE_NAME_MAP =
