@@ -247,3 +247,24 @@ static std::unordered_map<QString, QString> properEphysFeatureNames = {
     {"depth_from_pia_norm","Normalized depth from pia"},
     {"sm_adapt_mean","Adaptation mean"}
 };
+
+static QStringList featuresToDelete = {
+    "blowout_mv_qc",
+    "electrode_0_pa_qc",
+    "recording_date_qc",
+    "seal_gohm_qc",
+    "input_resistance_mohm_qc",
+    "initial_access_resistance_mohm_qc",
+    "input_access_resistance_ratio_qc",
+    "fail_tags_qc",
+    "failed_blowout",
+    "failed_electrode_0",
+    "failed_seal",
+    "failed_input_access_resistance",
+    "failed_qc",
+    "failed_fx_long_squares",
+    "failed_fx_short_squares",
+    "failed_fx_ramps",
+    "failed_fx_chirps",
+    "failed_fx_sweep_features"
+};
