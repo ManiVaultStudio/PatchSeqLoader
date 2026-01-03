@@ -43,6 +43,8 @@ set(PLUGIN_SOURCES
     src/MatrixData.cpp
     src/InputDialog.h
     src/InputDialog.cpp
+    src/ColorTaxonomy.h
+    src/ColorTaxonomy.cpp
     src/Taxonomy.h
     src/Taxonomy.cpp
     src/FeatureNames.h
