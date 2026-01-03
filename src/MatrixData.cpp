@@ -2,6 +2,8 @@
 
 #include <QDebug>
 
+#include <unordered_set>
+
 void MatrixData::removeRow(int row)
 {
     data.erase(data.begin() + (row * numCols + 0), data.begin() + (row * numCols + numCols));
@@ -18,6 +20,44 @@ void MatrixData::removeRows(const std::vector<int>& rowsToDelete)
         removeRow(rowToDelete);
         rowsRemoved++;
     }
+}
+
+void MatrixData::removeCols(const std::vector<int>& colsToDelete)
+{
+    if (colsToDelete.empty())
+        return;
+
+    std::unordered_set<int> deleteSet(colsToDelete.begin(), colsToDelete.end());
+
+    std::vector<int> colsToKeep;
+    for (int i = 0; i < numCols; i++)
+    {
+        if (!deleteSet.count(i))
+            colsToKeep.push_back(i);
+    }
+
+    // Only include cols to be kept in the new data
+    std::vector<float> newData;
+    for (int row = 0; row < numRows; row++)
+    {
+        for (int j = 0; j < colsToKeep.size(); j++)
+        {
+            int col = colsToKeep[j];
+            newData.push_back(data[row * numCols + col]);
+        }
+    }
+
+    // Only include headers to be kept
+    std::vector<QString> newHeaders;
+    for (int j = 0; j < colsToKeep.size(); j++)
+    {
+        int col = colsToKeep[j];
+        newHeaders.push_back(headers[col]);
+    }
+
+    headers = newHeaders;
+    data = newData;
+    numCols = colsToKeep.size();
 }
 
 void MatrixData::fillMissingValues(float fillValue)

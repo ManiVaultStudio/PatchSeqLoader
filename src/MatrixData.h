@@ -12,6 +12,7 @@ class MatrixData
 public:
     void removeRow(int row);
     void removeRows(const std::vector<int>& rowsToDelete);
+    void removeCols(const std::vector<int>& colsToDelete);
     //void removeRowsWithColumnValue(QString column, float val)
 
     void fillMissingValues(float fillValue);
@@ -25,7 +26,7 @@ private:
 
 public:
     std::vector<QString> headers;
-    std::vector<float> data;
+    std::vector<float> data; // Store row-major
     size_t numRows;
     size_t numCols;
 };
