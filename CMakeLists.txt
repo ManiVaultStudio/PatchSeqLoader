@@ -52,6 +52,8 @@ set(PLUGIN_SOURCES
     src/PatchSeqFilePaths.cpp
     src/MatrixDataLoader.h
     src/MatrixDataLoader.cpp
+    src/CSVReader.h
+    src/CSVReader.cpp
     src/json.hpp
 )
 
