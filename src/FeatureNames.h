@@ -220,3 +220,30 @@ static std::unordered_map<QString, QString> properMorphologyFeatureNames = {
     {"soma_aligned_dist_from_pia","soma aligned distance from pia"},
     {"soma_surface_area","soma surface area"}
 };
+
+static std::unordered_map<QString, QString> properEphysFeatureNames = {
+    {"combined_upstroke_downstroke_ratio_rheo","AP up/down ratio"},
+    {"combined_width_rheo","AP width (ms)"},
+    {"combined_upstroke_rheo","AP ustroke"},
+    {"combined_downstroke_rheo","AP downstroke"},
+    {"combined_sag","Sag"},
+    {"combined_baseline","Resting membrane potential (RMP)"},
+    {"combined_input_resistance_SS","Input resistance"},
+    {"combined_tau","Tau"},
+    {"combined_peak_v","AP peak"},
+    {"combined_trough_v_rheo","Trough voltage"},
+    {"combined_fast_trough_v_rheo","Fast trough voltage"},
+    {"combined_peak_freq_chirp","Chirp peak"},
+    {"combined_AP_threshold","AP threshold"},
+    {"combined_peak_impedance_chirp","ZAP (peak impedance)"},
+    {"sm_rheobase_i","Rheobase current"},
+    {"sm_fi_fit_slope","FI slope"},
+    {"sm_latency_rheo","Latency"},
+    {"sm_avg_rate_hero","Avg spike rate"},
+    {"sm_mean_isi_hero","Mean ISI"},
+    {"sm_isi_adapt_ratio","ISI adaptation ratio"},
+    {"sm_trough_slowdeltav_hero","Slow trough absolute voltage"},
+    {"sm_fast_trough_deltav_hero","Fast trough absolute voltage"},
+    {"depth_from_pia_norm","Normalized depth from pia"},
+    {"sm_adapt_mean","Adaptation mean"}
+};
