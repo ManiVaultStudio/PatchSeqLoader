@@ -151,6 +151,11 @@ namespace
         matrix.removeRows(duplicateRows);
     }
 
+    QColor hexToQColor(const QString& hex)
+    {
+        return QColor(hex.left(7));
+    }
+
     void buildMapOfCellTypesColors(const DataFrame& taxonomyDf, QHash<QString, QColor>& cellTypeColors)
     {
         std::vector<QString> superTypeNames = taxonomyDf["labels"];
@@ -159,7 +164,10 @@ namespace
         for (int i = 0; i < superTypeNames.size(); i++)
         {
             // Colors are in RGBA hex, but Qt wants ARGB, so we need to swizzle, actually just remove alpha component, make it RGB
-            cellTypeColors[superTypeNames[i]] = QColor(superTypeColors[i].left(7)); // #RRGGBB
+            cellTypeColors[superTypeNames[i]] = hexToQColor(superTypeColors[i]); // #RRGGBB
+        }
+    }
+
         }
     }
 }
