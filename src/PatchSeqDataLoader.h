@@ -4,6 +4,7 @@
 
 #include "DataFrame.h"
 #include "PatchSeqFilePaths.h"
+#include "ColorTaxonomy.h"
 
 #include <PointData/PointData.h>
 #include <ClusterData/ClusterData.h>
@@ -12,6 +13,7 @@
 #include <EphysData/EphysData.h>
 
 #include <Task.h>
+#include <SelectionGroup.h>
 
 #include <QString>
 #include <QColor>
@@ -46,7 +48,7 @@ public:
 
     void init() override;
 
-    void addTaxonomyClustersForDf(DataFrame& df, DataFrame& metadata, DataFrame& taxonomyDf, QString name, mv::Dataset<mv::DatasetImpl> parent, QString metaLabel);
+    void addTaxonomyClustersForDf(DataFrame& df, DataFrame& metadata, TaxonomyLevel level, QString name, mv::Dataset<mv::DatasetImpl> parent, QString metaLabel);
     void createClusterData(std::vector<QString> stringList, QString dataName, mv::Dataset<mv::DatasetImpl> parent);
 
     void loadData() Q_DECL_OVERRIDE;
@@ -57,11 +59,14 @@ private:
     void loadMorphologyData(QString filePath, const DataFrame& metadata);
     void loadMorphologyCells(QDir dir);
     void loadEphysTraces(QDir dir);
-    void loadUMap(QString filePath, mv::Dataset<DatasetImpl> parent, QString datasetName, BiMap& bimap);
+    void loadUMap(QString filePath, mv::Dataset<Points> parent, QString datasetName, BiMap& bimap);
 
 private:
     DataFrame _taxonomyDf;
     QHash<QString, QColor> _cellTypeColors;
+    ColorTaxonomy _colorTaxonomy;
+
+    KeyBasedSelectionGroup _selectionGroup;
 
     // Metadata
     DataFrame _metadataDf;
@@ -70,10 +75,12 @@ private:
     // Gene expressions
     DataFrame _transcriptomicsDf;
     Dataset<Points> _geneExpressionData;
+    DataFrame _gexprMetadata;
 
     // Electrophysiology
     DataFrame _ephysDf;
     Dataset<Points> _ephysData;
+    DataFrame _ephysMetadata;
 
     // Ephys traces
     Dataset<EphysExperiments> _ephysTraces;

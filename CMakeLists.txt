@@ -100,7 +100,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${LIBRARY_INSTALL_DIR}/zlib/$
 # -----------------------------------------------------------------------------
 # Target properties
 # -----------------------------------------------------------------------------
-target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 
 # -----------------------------------------------------------------------------
 # Target library linking

@@ -151,8 +151,6 @@ namespace
 
         std::transform(recording.GetData().xSeries.begin(), recording.GetData().xSeries.end(), recording.GetData().xSeries.begin(), [](auto& c) { return c / 1000.0f; });
         recording.GetData().downsample();
-        recording.GetData().trim();
-        recording.GetData().computeExtents();
     }
 }
 
@@ -170,7 +168,8 @@ void NWBLoader::LoadNWB(QString fileName, Experiment& experiment, LoadInfo& info
     QHash<QString, RecordingPair> recordingPairs;
     ExtractRecordings(groups, recordingPairs);
 
-    for (RecordingPair& recordingPair : recordingPairs) {
+    for (RecordingPair& recordingPair : recordingPairs)
+    {
         // Find stimulus description
         QString stimDescription;
         bool stimDescriptionFound = FindStimulusDescription(nwbFile, recordingPair.acquisition, stimDescription);
@@ -239,8 +238,6 @@ void NWBLoader::LoadNWB(QString fileName, Experiment& experiment, LoadInfo& info
                 totalSize += it.value().size() / 1000000.0f;
                 //qDebug() << "Attribute size: " << it.key() << " " << it.value().size();
             }
-
-            experiment.addAcquisition(std::move(acquisition));
         }
 
         // STIMULUS
@@ -264,9 +261,20 @@ void NWBLoader::LoadNWB(QString fileName, Experiment& experiment, LoadInfo& info
                 totalSize += it.value().size() / 1000000.0f;
                 //qDebug() << "Attribute size: " << it.key() << " " << it.value().size();
             }
-
-            experiment.addStimulus(std::move(stimulus));
         }
+
+        std::pair<int, int> stimRange = stimulus.GetData().findStimulusRange();
+        if (stimRange.first != -1)
+        {
+            stimulus.GetData().trim(stimRange.first, stimRange.second);
+            acquisition.GetData().trim(stimRange.first, stimRange.second);
+        }
+
+        stimulus.GetData().computeExtents();
+        acquisition.GetData().computeExtents();
+
+        experiment.addAcquisition(std::move(acquisition));
+        experiment.addStimulus(std::move(stimulus));
     }
 
     //for (int i = 0; i < groups.size(); i++)

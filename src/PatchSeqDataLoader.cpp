@@ -19,7 +19,6 @@
 #include <CellMorphologyData/CellMorphology.h>
 
 #include <Set.h>
-#include <SelectionGroup.h>
 
 #include <QtCore>
 #include <QtDebug>
@@ -34,16 +33,78 @@
 #include <iostream>
 #include <algorithm>
 #include <unordered_set>
+#include <map>
 
 Q_PLUGIN_METADATA(IID "studio.manivault.PatchSeqDataLoader")
 
-#define CELL_ID_TAG "cell_id"
-#define METADATA_CLUSTER_LABEL "HANN_cluster_label_assignment_winner"
-#define METADATA_SUBCLASS_LABEL "HANN_subclass_label_assignment_winner"
+//#define DALLEYLEE
+#define KALMBACH
+//#define WALEBOER
 
-#define EPHYS_UMAP_PATH "D:/Dropbox/Julian/Patchseq/Data_February_2025/Electrophysiology/umap_2d_nn15_md0.1_ephys.csv"
-#define MORPHO_UMAP_PATH "D:/Dropbox/Julian/Patchseq/Data_February_2025/Morphology/umap_2d_nn15_md0.1_morphometric_dendrite.csv"
-#define TRANS_UMAP_PATH "D:/Dropbox/Julian/Patchseq/Data_February_2025/Transcriptomics/umap_seuratQC_mapping_results_SEAAD_NEW_Nov_19th_2024.csv"
+#ifdef DALLEYLEE
+
+#define CELL_ID_TAG "cell_id"
+#define CELL_NAME_TAG "cell_name"
+
+#define METADATA_CLUSTER_LABEL "cluster_label_Hierarchical"
+#define METADATA_SUBCLASS_LABEL "subclass_label_Hierarchical"
+
+#define TX_PATH "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_Original/IDs_w_tc_data.csv"
+#define EPHYS_PATH "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_November_2025/20251107_ephys_data.csv"
+#define MORPHO_PATH "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_July_Cortex/Morphology/dendrite_morphometric_features.csv"
+#define META_PATH "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_July_Cortex/Dalley_simplified_metadata_4_4_2025.csv"
+#define MORPHO_DIR "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_August_2025/SWC_LayerAligned"
+#define TRACES_DIR "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_July_Cortex/Electrophysiology/dalley_cytosplore_nwb"
+
+#define EPHYS_UMAP_PATH "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_November_2025/e_umap.csv"
+#define MORPHO_UMAP_PATH "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_November_2025/m_umap.csv"
+#define TX_UMAP_PATH "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_July_Cortex/Transcriptomics/tx_umap.csv"
+#define ME_UMAP_PATH "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_November_2025/me_umap.csv"
+
+#endif
+
+#ifdef KALMBACH
+
+#define CELL_ID_TAG "cell_id"
+#define CELL_NAME_TAG "cell_name"
+
+#define METADATA_CLUSTER_LABEL "Group_name"
+#define METADATA_SUBCLASS_LABEL "Subclass_name"
+
+#define TX_PATH ""
+#define EPHYS_PATH "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_June_Macaque/NHP_ephys_features_20250520.csv"
+#define MORPHO_PATH "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_June_Macaque/RawFeatureWide_dend_20250616.csv"
+#define META_PATH "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_December_Macaque/HANN_filtered_Cytosplore_20251212.csv"
+#define MORPHO_DIR "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_December_Macaque/SWC_files"
+#define TRACES_DIR "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_December_Macaque/NWB_files"
+
+#define EPHYS_UMAP_PATH "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_June_Macaque/ephys_umap_s.csv"
+#define MORPHO_UMAP_PATH "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_June_Macaque/morpho_umap_s.csv"
+#define TX_UMAP_PATH ""
+
+#endif
+
+#ifdef WALEBOER
+
+#define CELL_ID_TAG "cell_id"
+#define CELL_NAME_TAG "cell_name"
+
+#define METADATA_CLUSTER_LABEL "T-type"
+#define METADATA_SUBCLASS_LABEL "Subclass"
+
+#define TX_PATH ""
+#define EPHYS_PATH "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_VU/Data Julian/Processed_data/ephys_data.csv"
+#define MORPHO_PATH "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_VU/Data Julian/Processed_data/morph_data.csv"
+#define META_PATH "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_VU/Data Julian/Processed_data/meta_data.csv"
+#define MORPHO_DIR "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_VU/Data Julian/Processed_data/SWC"
+#define TRACES_DIR ""
+
+#define EPHYS_UMAP_PATH ""
+#define MORPHO_UMAP_PATH ""
+#define TX_UMAP_PATH ""
+#define ME_UMAP_PATH ""
+
+#endif
 
 using namespace mv;
 using namespace mv::gui;
@@ -99,9 +160,24 @@ namespace
         matrix.removeRows(rowsToRemove);
     }
 
-    std::unordered_map<QString, std::vector<unsigned int>> makeClustersFromList(std::vector<QString> list)
+    void removeFeatures(MatrixData& matrix, QStringList features)
     {
-        std::unordered_map<QString, std::vector<unsigned int>> clusterData;
+        std::vector<int> colsToDelete;
+        for (int i = 0; i < matrix.headers.size(); i++)
+        {
+            for (int j = 0; j < features.size(); j++)
+            {
+                if (matrix.headers[i] == features[j])
+                    colsToDelete.push_back(i);
+            }
+        }
+
+        matrix.removeCols(colsToDelete);
+    }
+
+    std::map<QString, std::vector<unsigned int>> makeClustersFromList(std::vector<QString> list)
+    {
+        std::map<QString, std::vector<unsigned int>> clusterData;
 
         for (int i = 0; i < list.size(); i++)
         {
@@ -168,7 +244,140 @@ namespace
         }
     }
 
+    void addColorizedClusters(Dataset<Points> umapDataset, DataFrame& umapDf, QString columnName)
+    {
+        // Create a list of clusters and their indices from the list of cluster names
+        Dataset<Clusters> clusterData = mv::data().createDataset<Clusters>("Cluster", columnName, umapDataset);
+
+        const std::vector<QString>& clusterAsList = umapDf[columnName];
+        std::map<QString, std::vector<unsigned int>> clusterMap = makeClustersFromList(clusterAsList);
+
+        for (auto& kv : clusterMap)
+        {
+            Cluster cluster;
+
+            cluster.setName(kv.first);
+            cluster.setIndices(kv.second);
+
+            clusterData->addCluster(cluster);
         }
+        Cluster::colorizeClusters(clusterData->getClusters(), 0);
+
+        mv::events().notifyDatasetDataChanged(clusterData);
+        mv::events().notifyDatasetDataDimensionsChanged(clusterData);
+    }
+
+    void addColorizedClustersFromMetadata(Dataset<Text>& metadata, Dataset<Points>& umap, KeyBasedSelectionGroup& selectionGroup, QString columnName, QHash<QString, QColor> cellTypeColors = QHash<QString, QColor>())
+    {
+        const BiMap& umapBiMap = selectionGroup.getBiMap(umap);
+        const BiMap& metadataBiMap = selectionGroup.getBiMap(metadata);
+
+        std::vector<uint32_t> allVals(umap->getNumPoints());
+        std::iota(allVals.begin(), allVals.end(), 0);
+        std::vector<QString> keys = umapBiMap.getKeysByValues(allVals);
+        std::vector<int> metaIndices = metadataBiMap.getValuesByKeysWithMissingValue(keys, -1);
+
+        // Create a list of clusters and their indices from the list of cluster names
+        Dataset<Clusters> clusterData = mv::data().createDataset<Clusters>("Cluster", columnName, umap);
+
+        const std::vector<QString>& column = metadata->getColumn(columnName);
+        std::vector<QString> clusterKeys;
+        for (int idx : metaIndices)
+        {
+            clusterKeys.push_back(column[idx]);
+        }
+
+        std::map<QString, std::vector<unsigned int>> clusterMap = makeClustersFromList(clusterKeys);
+
+        for (auto& kv : clusterMap)
+        {
+            //if (kv.first == "")
+            //    continue;
+
+            Cluster cluster;
+
+            cluster.setName(kv.first);
+            cluster.setIndices(kv.second);
+
+            clusterData->addCluster(cluster);
+        }
+        Cluster::colorizeClusters(clusterData->getClusters(), 0);
+
+        // Assign unassigned indices to unknown cluster
+        std::unordered_set<uint32_t> unassignedIndicesSet(allVals.begin(), allVals.end());
+        for (const Cluster& cluster : clusterData->getClusters())
+        {
+            for (const auto& value : cluster.getIndices()) {
+                unassignedIndicesSet.erase(value);
+            }
+        }
+        //if (columnName != "lobe")
+        {
+            Cluster cluster;
+
+            if (columnName != "lobe")
+                cluster.setName("Unlabeled");
+            else
+                cluster.setName("TemL (ref)");
+
+            std::vector<uint32_t> unassignedIndices(unassignedIndicesSet.begin(), unassignedIndicesSet.end());
+            cluster.setIndices(unassignedIndices);
+            cluster.setColor(hexToQColor("#DDDDDD"));
+
+            clusterData->addCluster(cluster);
+        }
+        //}
+        //else
+        //{
+        //    for (Cluster& cluster : clusterData->getClusters())
+        //    {
+        //        if (cluster.getName() == "TemL")
+        //        {
+        //            std::vector<uint32_t> unassignedIndices(unassignedIndicesSet.begin(), unassignedIndicesSet.end());
+        //            std::vector<uint32_t> combinedIndices;
+        //            combinedIndices.insert(combinedIndices.end(), cluster.getIndices().begin(), cluster.getIndices().end());
+        //            combinedIndices.insert(combinedIndices.end(), unassignedIndices.begin(), unassignedIndices.end());
+        //            cluster.setIndices(combinedIndices);
+        //        }
+        //    }
+        //}
+
+        if (columnName == "lobe")
+        {
+            for (Cluster& cluster : clusterData->getClusters())
+            {
+                if (cluster.getName() == "CeG") cluster.setColor(hexToQColor("#E6B6B6"));
+                if (cluster.getName() == "FroL") cluster.setColor(hexToQColor("#E8CD59"));
+                if (cluster.getName() == "ParL") cluster.setColor(hexToQColor("#EC813B"));
+                if (cluster.getName() == "TemL") cluster.setColor(hexToQColor("#D55C92"));
+                if (cluster.getName() == "OccL") cluster.setColor(hexToQColor("#D24D48"));
+                if (cluster.getName() == "InL") cluster.setColor(hexToQColor("#B94A39"));
+                if (cluster.getName() == "LimL") cluster.setColor(hexToQColor("#8D7BDB"));
+                if (cluster.getName() == "") { cluster.setName("Unknown"); cluster.setColor(hexToQColor("#4C72B0")); }
+                if (cluster.getName() == "TemL (ref)") cluster.setColor(QColor(220, 220, 220, 128));
+            }
+        }
+        if (columnName == "paradigm")
+        {
+            for (Cluster& cluster : clusterData->getClusters())
+            {
+                if (cluster.getName() == "acute") cluster.setColor(hexToQColor("#DBCD70"));
+                if (cluster.getName() == "culture") cluster.setColor(hexToQColor("#70BEDB"));
+            }
+        }
+#ifdef DALLEYLEE
+        if (columnName == "Supertype" || columnName == "Subclass")
+        {
+            for (Cluster& cluster : clusterData->getClusters())
+            {
+                if (cellTypeColors.contains(cluster.getName()))
+                    cluster.setColor(cellTypeColors[cluster.getName()]);
+            }
+        }
+#endif
+
+        mv::events().notifyDatasetDataChanged(clusterData);
+        mv::events().notifyDatasetDataDimensionsChanged(clusterData);
     }
 }
 
@@ -186,7 +395,17 @@ void PatchSeqDataLoader::init()
 
 }
 
-void PatchSeqDataLoader::addTaxonomyClustersForDf(DataFrame& df, DataFrame& metadata, DataFrame& taxonomyDf, QString name, mv::Dataset<mv::DatasetImpl> parent, QString metaLabel)
+int extractLayerNumber(const QString& str)
+{
+    QRegularExpression re("L(\\d+)");
+    QRegularExpressionMatch match = re.match(str);
+    if (match.hasMatch()) {
+        return match.captured(1).toInt();
+    }
+    return -1; // Return -1 if no match is found, for safety
+}
+
+void PatchSeqDataLoader::addTaxonomyClustersForDf(DataFrame& df, DataFrame& metadata, TaxonomyLevel level, QString name, mv::Dataset<mv::DatasetImpl> parent, QString metaLabel)
 {
     // Get the available cluster labels from the metadata df
     const std::vector<QString>& treeCluster = metadata[metaLabel];
@@ -222,22 +441,49 @@ void PatchSeqDataLoader::addTaxonomyClustersForDf(DataFrame& df, DataFrame& meta
     }
 
     // Create a list of clusters and their indices from the list of cluster names
-    std::unordered_map<QString, std::vector<unsigned int>> clusterData = makeClustersFromList(clusterNames);
+    std::map<QString, std::vector<unsigned int>> clusterData = makeClustersFromList(clusterNames);
+
+//#ifdef DALLEYLEE
+//    // Try to sort cluster names according to layer
+//    std::sort(clusterNames.begin(), clusterNames.end(), [](const QString& a, const QString& b) {
+//        return extractLayerNumber(a) < extractLayerNumber(b);
+//        });
+//    qDebug() << clusterNames;
+//#endif
 
     for (auto& kv : clusterData)
     {
+        if (kv.first.isEmpty())
+        {
+            qWarning() << "Skipping cluster with no name..";
+            continue;
+        }
+
         Cluster cluster;
 
         cluster.setName(kv.first);
 
+#if defined(DALLEYLEE) || defined(WALEBOER)
         if (_cellTypeColors.contains(cluster.getName()))
             cluster.setColor(_cellTypeColors[cluster.getName()]);
+#else
+        if (level == TaxonomyLevel::GROUP)
+        {
+            const QColor& color = _colorTaxonomy.getGroupColor(cluster.getName());
+            cluster.setColor(color);
+        }
+        if (level == TaxonomyLevel::SUBCLASS)
+        {
+            const QColor& color = _colorTaxonomy.getSubclassColor(cluster.getName());
+            cluster.setColor(color);
+        }
+#endif
 
         cluster.setIndices(kv.second);
 
         treeClusterData->addCluster(cluster);
     }
-
+    
     mv::events().notifyDatasetDataChanged(treeClusterData);
     mv::events().notifyDatasetDataDimensionsChanged(treeClusterData);
 }
@@ -246,10 +492,16 @@ void PatchSeqDataLoader::createClusterData(std::vector<QString> stringList, QStr
 {
     Dataset<Clusters> clusterData = mv::data().createDataset<Points>("Cluster", dataName, parent);
 
-    std::unordered_map<QString, std::vector<unsigned int>> clusterMap = makeClustersFromList(stringList);
+    std::map<QString, std::vector<unsigned int>> clusterMap = makeClustersFromList(stringList);
 
     for (auto& kv : clusterMap)
     {
+        if (kv.first.isEmpty())
+        {
+            qWarning() << "[PatchSeqDataLoader::createClusterData] Skipping cluster with empty name..";
+            continue;
+        }
+
         Cluster cluster;
 
         cluster.setName(kv.first);
@@ -284,20 +536,29 @@ void PatchSeqDataLoader::loadData()
         //filePaths.metadataFilePath = "D:/Dropbox/Julian/Patchseq/ProvidedData/allen_test_human_exc_metadata_simple.csv";// inputDialog.getMetadataFilePath();
         //morphologiesDir = QDir("D:/Dropbox/Julian/Patchseq/ProvidedData/SWC_Upright"); //inputDialog.getMorphologiesDir();
 
-        filePaths.gexprFilePath = "D:/Dropbox/Julian/Patchseq/Data_Original/IDs_w_tc_data.csv";// inputDialog.getTranscriptomicsFilePath();
-        filePaths.ephysFilePath = "D:/Dropbox/Julian/Patchseq/Data_February_2025/Electrophysiology/ephys_features.csv";// "D:/Dropbox/Julian/Patchseq/NewData/240928_human_exc_dataset_rsc369_ephys_data.csv";// inputDialog.getElectrophysiologyFilePath();
-        filePaths.morphoFilePath = "D:/Dropbox/Julian/Patchseq/Data_February_2025/Morphology/dendrite_morphometric_features.csv";// inputDialog.getMorphologyFilePath();
-        filePaths.metadataFilePath = "D:/Dropbox/Julian/Patchseq/Data_February_2025/metadata_simple_MMC_11_6_24.csv";// inputDialog.getMetadataFilePath();
-        morphologiesDir = QDir("D:/Dropbox/Julian/Patchseq/Data_February_2025/Morphology/SWC_LayerAligned"); //inputDialog.getMorphologiesDir();
-        ephysTracesDir = QDir("D:/Dropbox/Julian/Patchseq/Data_May_2025/Electrophysiology/NWB_files");
+        filePaths.gexprFilePath = TX_PATH;// inputDialog.getTranscriptomicsFilePath();
+        filePaths.ephysFilePath = EPHYS_PATH;// "D:/Dropbox/Julian/Patchseq/NewData/240928_human_exc_dataset_rsc369_ephys_data.csv";// inputDialog.getElectrophysiologyFilePath();
+        filePaths.morphoFilePath = MORPHO_PATH;// inputDialog.getMorphologyFilePath();
+        filePaths.metadataFilePath = META_PATH;// inputDialog.getMetadataFilePath();
+        morphologiesDir = QDir(MORPHO_DIR); //inputDialog.getMorphologiesDir();
+        ephysTracesDir = QDir(TRACES_DIR);
+
+        filePaths.ephysUMapFilePath = EPHYS_UMAP_PATH;
+        filePaths.morphoUMapFilePath = MORPHO_UMAP_PATH;
+        filePaths.txUMapFilePath = TX_UMAP_PATH;
+#ifdef ME_UMAP_PATH
+        filePaths.meUMapFilePath = ME_UMAP_PATH;
+#endif
+        filePaths.ephysTracesDir = TRACES_DIR;
+        filePaths.morphologiesDir = MORPHO_DIR;
     }
 
     // Locate all the necessary patch-seq files
-    if (!filePaths.allFilesLocated())
-    {
-        qDebug() << "Failed to locate all of the necessary patch-seq files.";
-        return;
-    }
+    //if (!filePaths.allFilesLocated())
+    //{
+    //    qDebug() << "Failed to locate all of the necessary patch-seq files.";
+    //    return;
+    //}
 
     _task.setEnabled(true);
     _task.setRunning();
@@ -308,8 +569,13 @@ void PatchSeqDataLoader::loadData()
     //Taxonomy taxonomy = Taxonomy::fromJsonFile();
     //taxonomy.printTree();
     //_taxonomyDf.readFromFile(":met_loader/hodge_taxonomy.csv");
+#if defined(DALLEYLEE) || defined(WALEBOER)
     _taxonomyDf.readFromFile(":met_loader/SEAAD_colors.csv");
     buildMapOfCellTypesColors(_taxonomyDf, _cellTypeColors);
+#else
+    _taxonomyDf.readFromFile(":met_loader/HMBA_BG_consensus_colors_all_levels.csv");
+    _colorTaxonomy.processFromDataFrame(_taxonomyDf);
+#endif
 
     qDebug() << "Loading CSV file: " << filePaths.metadataFilePath;
 
@@ -317,39 +583,47 @@ void PatchSeqDataLoader::loadData()
     _metadataDf.readFromFile(filePaths.metadataFilePath);
     _metadataDf.removeDuplicateRows(CELL_ID_TAG);
 
-    // Read gene expression file
-    _task.setSubtaskStarted("Loading Transcriptomics");
-    loadGeneExpressionData(filePaths.gexprFilePath, _metadataDf);
-    _task.setSubtaskFinished("Loading Transcriptomics");
+    // Gene expression data
+    if (filePaths.hasGeneExpressions())
+    {
+        //qDebug() << "Loading gene expression data..";
+        //// Read gene expression file
+        //_task.setSubtaskStarted("Loading Transcriptomics");
+        //loadGeneExpressionData(filePaths.gexprFilePath, _metadataDf);
+        //_task.setSubtaskFinished("Loading Transcriptomics");
 
-    // Read electrophysiology file
-    loadEphysData(filePaths.ephysFilePath, _metadataDf);
+        //_gexprMetadata = DataFrame::subsetAndReorderByColumn(_metadataDf, _transcriptomicsDf, CELL_ID_TAG, CELL_ID_TAG);
 
-    // Subset and reorder the metadata
-    qDebug() << "<<<<<<<<<<<<<<<<<<<<<< GEXPR";
-    DataFrame gexpr_metadata = DataFrame::subsetAndReorderByColumn(_metadataDf, _transcriptomicsDf, CELL_ID_TAG, CELL_ID_TAG);
-    qDebug() << "<<<<<<<<<<<<<<<<<<<<<< EPHYS";
-    // Subset and reorder the metadata
-    DataFrame ephys_metadata = DataFrame::subsetAndReorderByColumn(_metadataDf, _ephysDf, CELL_ID_TAG, CELL_ID_TAG);
+        //// Add cluster meta data
+        //addTaxonomyClustersForDf(_transcriptomicsDf, _gexprMetadata, _taxonomyDf, QFileInfo(filePaths.gexprFilePath).baseName(), _geneExpressionData, METADATA_CLUSTER_LABEL);
+        //addTaxonomyClustersForDf(_transcriptomicsDf, _gexprMetadata, _taxonomyDf, QFileInfo(filePaths.gexprFilePath).baseName(), _geneExpressionData, METADATA_SUBCLASS_LABEL);
+    }
 
-    // Add cluster meta data
-    addTaxonomyClustersForDf(_transcriptomicsDf, gexpr_metadata, _taxonomyDf, QFileInfo(filePaths.gexprFilePath).baseName(), _geneExpressionData, METADATA_CLUSTER_LABEL);
-    addTaxonomyClustersForDf(_transcriptomicsDf, gexpr_metadata, _taxonomyDf, QFileInfo(filePaths.gexprFilePath).baseName(), _geneExpressionData, METADATA_SUBCLASS_LABEL);
+    if (filePaths.hasEphysFeatures())
+    {
+        qDebug() << "Load electrophysiology feature data..";
+        // Read electrophysiology file
+        loadEphysData(filePaths.ephysFilePath, _metadataDf);
+        qDebug() << "bee";
+        // Subset and reorder the metadata
+        _ephysMetadata = DataFrame::subsetAndReorderByColumn(_metadataDf, _ephysDf, CELL_ID_TAG, CELL_ID_TAG);
+        qDebug() << "bee1";
+    }
 
-    // Add cluster meta data
-    addTaxonomyClustersForDf(_ephysDf, ephys_metadata, _taxonomyDf, QFileInfo(filePaths.ephysFilePath).baseName(), _ephysData, METADATA_CLUSTER_LABEL);
-    addTaxonomyClustersForDf(_ephysDf, ephys_metadata, _taxonomyDf, QFileInfo(filePaths.ephysFilePath).baseName(), _ephysData, METADATA_SUBCLASS_LABEL);
-
-    loadMorphologyData(filePaths.morphoFilePath, _metadataDf);
+    if (filePaths.hasMorphologyFeatures())
+    {
+        qDebug() << "bee4";
+        loadMorphologyData(filePaths.morphoFilePath, _metadataDf);
+    }
 
     _task.setFinished();
-
+    qDebug() << "bee5";
     //----------------------------------------------------------------------------------------------------------------------
     // Make a metadata text dataset and adds its columns, tries to assign a proper header name if possible 
     //----------------------------------------------------------------------------------------------------------------------
-    _metadata = mv::data().createDataset<Text>("Text", "cell_metadata", mv::Dataset<DatasetImpl>(), "", false);
+    _metadata = mv::data().createDataset<Text>("Text", "Cell Metadata", mv::Dataset<DatasetImpl>(), "", false);
     _metadata->setProperty("PatchSeqType", "Metadata");
-
+    qDebug() << "bee6";
     for (int i = 0; i < _metadataDf.getHeaders().size(); i++)
     {
         const QString& header = _metadataDf.getHeaders()[i];
@@ -362,7 +636,7 @@ void PatchSeqDataLoader::loadData()
         std::vector<QString> column = _metadataDf[header];
         _metadata->addColumn(properHeaderName, column);
     }
-
+    qDebug() << "bee7";
     //----------------------------------------------------------------------------------------------------------------------
     // Link up all the datasets
     //----------------------------------------------------------------------------------------------------------------------
@@ -372,58 +646,107 @@ void PatchSeqDataLoader::loadData()
     std::iota(metaCellIdIndices.begin(), metaCellIdIndices.end(), 0);
     metadataBiMap.addKeyValuePairs(_metadataDf[CELL_ID_TAG], metaCellIdIndices);
 
-    std::vector<QString> ephysCellIdColumn = ephys_metadata[CELL_ID_TAG];
+    qDebug() << "bee8";
+    std::vector<QString> ephysCellIdColumn = _ephysMetadata[CELL_ID_TAG];
     std::vector<uint32_t> ephysToMetaIndices = metadataBiMap.getValuesByKeys(ephysCellIdColumn);
 
     std::vector<QString> morphoCellIdColumn = _morphoMetadata[CELL_ID_TAG];
     std::vector<uint32_t> morphoToMetaIndices = metadataBiMap.getValuesByKeys(morphoCellIdColumn);
-
+    qDebug() << "bee9";
     // Add ephys and morpho data to metadata dataset
-    addPointsToTextDataset(_ephysData, _metadata, ephysToMetaIndices);
+    addPointsToTextDataset(_ephysData, _metadata, ephysToMetaIndices); qDebug() << "bee10";
     addPointsToTextDataset(_morphoData, _metadata, morphoToMetaIndices);
-
+    qDebug() << "bee11";
     events().notifyDatasetAdded(_metadata);
     events().notifyDatasetDataDimensionsChanged(_metadata);
 
-    createClusterData(_metadataDf[METADATA_CLUSTER_LABEL], "tree_cluster", _metadata);
+    //createClusterData(_metadataDf[METADATA_CLUSTER_LABEL], "tree_cluster", _metadata);
 
     qDebug() << ">>>>>>>>>>>>>> Loading morphology cells";
     loadMorphologyCells(morphologiesDir);
-
+    
     qDebug() << ">>>>>>>>>>>>>> Loading ephys cells";
-    loadEphysTraces(ephysTracesDir);
+
+    if (filePaths.hasEphysTraces())
+        loadEphysTraces(ephysTracesDir);
+    else
+        qDebug() << "No ephys traces directory set, skipping loading..";
 
     qDebug() << ">>>>>>>>>>>>>> Making selection group";
     // Make selection group
-    KeyBasedSelectionGroup selectionGroup;
+    _selectionGroup.addDataset(_metadata, metadataBiMap);
 
-    // Gene expression data
-    BiMap gexprBiMap;
-    std::vector<uint32_t> gexprIndices(_geneExpressionData->getNumPoints());
-    std::iota(gexprIndices.begin(), gexprIndices.end(), 0);
-    gexprBiMap.addKeyValuePairs(_transcriptomicsDf[CELL_ID_TAG], gexprIndices);
-    qDebug() << "Gexpr: " << _transcriptomicsDf[CELL_ID_TAG].size() << gexprIndices.size();
+    if (filePaths.hasGeneExpressions())
+    {
+        //// Gene expression data
+        //BiMap gexprBiMap;
+        //std::vector<uint32_t> gexprIndices(_geneExpressionData->getNumPoints());
+        //std::iota(gexprIndices.begin(), gexprIndices.end(), 0);
+        //gexprBiMap.addKeyValuePairs(_transcriptomicsDf[CELL_ID_TAG], gexprIndices);
+        //qDebug() << "Gexpr: " << _transcriptomicsDf[CELL_ID_TAG].size() << gexprIndices.size();
 
-    // Morphology data
-    BiMap morphBiMap;
-    std::vector<uint32_t> morphoIndices(_morphoData->getNumPoints());
-    std::iota(morphoIndices.begin(), morphoIndices.end(), 0);
-    morphBiMap.addKeyValuePairs(_morphologyDf[CELL_ID_TAG], morphoIndices);
-    qDebug() << "Morph: " << _morphoMetadata[CELL_ID_TAG].size() << morphoIndices.size();
+        //_selectionGroup.addDataset(_geneExpressionData, gexprBiMap);
+    }
 
-    // Ephys data
-    BiMap ephysBiMap;
-    std::vector<uint32_t> ephysIndices(_ephysData->getNumPoints());
-    std::iota(ephysIndices.begin(), ephysIndices.end(), 0);
-    ephys_metadata.removeDuplicateRows(CELL_ID_TAG);
-    ephysBiMap.addKeyValuePairs(_ephysDf[CELL_ID_TAG], ephysIndices);
-    qDebug() << "Ephys: " << ephys_metadata[CELL_ID_TAG].size() << ephysIndices.size();
+    if (filePaths.hasEphysFeatures())
+    {
+        // Ephys data
+        BiMap ephysBiMap;
+        std::vector<uint32_t> ephysIndices(_ephysData->getNumPoints());
+        std::iota(ephysIndices.begin(), ephysIndices.end(), 0);
+        _ephysMetadata.removeDuplicateRows(CELL_ID_TAG);
+        ephysBiMap.addKeyValuePairs(_ephysDf[CELL_ID_TAG], ephysIndices);
+        qDebug() << "Ephys: " << _ephysMetadata[CELL_ID_TAG].size() << ephysIndices.size();
 
-    // Ephys traces mapping
-    BiMap ephysTraceBiMap;
-    std::vector<uint32_t> ephysTraceIndices(_ephysTraceCellIds.size());
-    std::iota(ephysTraceIndices.begin(), ephysTraceIndices.end(), 0);
-    ephysTraceBiMap.addKeyValuePairs(_ephysTraceCellIds, ephysTraceIndices);
+        // Ephys UMAP
+        if (filePaths.hasEphysUMap())
+            loadUMap(filePaths.ephysUMapFilePath, _ephysData, "Ephys UMAP", ephysBiMap);
+
+        _selectionGroup.addDataset(_ephysData, ephysBiMap);
+
+        // Add cluster meta data
+        addTaxonomyClustersForDf(_ephysDf, _ephysMetadata, TaxonomyLevel::GROUP, QFileInfo(filePaths.ephysFilePath).baseName(), _ephysData, METADATA_CLUSTER_LABEL); qDebug() << "bee2";
+        addTaxonomyClustersForDf(_ephysDf, _ephysMetadata, TaxonomyLevel::SUBCLASS, QFileInfo(filePaths.ephysFilePath).baseName(), _ephysData, METADATA_SUBCLASS_LABEL); qDebug() << "bee3";
+#ifdef DALLEYLEE
+        addColorizedClustersFromMetadata(_metadata, _ephysData, _selectionGroup, "paradigm");
+        addColorizedClustersFromMetadata(_metadata, _ephysData, _selectionGroup, "lobe");
+#endif
+    }
+
+    if (filePaths.hasMorphologyFeatures())
+    {
+        // Morphology data
+        BiMap morphBiMap;
+        std::vector<uint32_t> morphoIndices(_morphoData->getNumPoints());
+        std::iota(morphoIndices.begin(), morphoIndices.end(), 0);
+        morphBiMap.addKeyValuePairs(_morphologyDf[CELL_ID_TAG], morphoIndices);
+        qDebug() << "Morph: " << _morphoMetadata[CELL_ID_TAG].size() << morphoIndices.size();
+
+        // Morphology UMAP
+        if (filePaths.hasMorphoUMap())
+            loadUMap(filePaths.morphoUMapFilePath, _morphoData, "Morpho UMAP", morphBiMap);
+
+        _selectionGroup.addDataset(_morphoData, morphBiMap);
+
+        // Add cluster meta data
+        addTaxonomyClustersForDf(_morphologyDf, _morphoMetadata, TaxonomyLevel::GROUP, QFileInfo(filePaths.morphoFilePath).baseName(), _morphoData, METADATA_CLUSTER_LABEL);
+        addTaxonomyClustersForDf(_morphologyDf, _morphoMetadata, TaxonomyLevel::SUBCLASS, QFileInfo(filePaths.morphoFilePath).baseName(), _morphoData, METADATA_SUBCLASS_LABEL);
+#ifdef DALLEYLEE
+        addColorizedClustersFromMetadata(_metadata, _morphoData, _selectionGroup, "paradigm");
+        addColorizedClustersFromMetadata(_metadata, _morphoData, _selectionGroup, "lobe");
+#endif
+    }
+
+    if (filePaths.hasEphysTraces())
+    {
+        // Ephys traces mapping
+        BiMap ephysTraceBiMap;
+        std::vector<uint32_t> ephysTraceIndices(_ephysTraceCellIds.size());
+        std::iota(ephysTraceIndices.begin(), ephysTraceIndices.end(), 0);
+        ephysTraceBiMap.addKeyValuePairs(_ephysTraceCellIds, ephysTraceIndices);
+
+        _selectionGroup.addDataset(_ephysTraces, ephysTraceBiMap);
+    }
 
     // Cell ID data
     BiMap cellIdBiMap;
@@ -444,19 +767,60 @@ void PatchSeqDataLoader::loadData()
     }
     cellMorphologyBiMap.addKeyValuePairs(cmCellIdVector, cmIndices);
 
-    // Ephys UMAP
-    loadUMap(EPHYS_UMAP_PATH, _ephysData, "Ephys UMAP", ephysBiMap);
-
-    // Morphology UMAP
-    loadUMap(MORPHO_UMAP_PATH, _morphoData, "Morpho UMAP", morphBiMap);
-
-    // Transcriptomics UMAP
+    // ME UMAP
+    if (filePaths.hasMEUMap())
     {
         MatrixData umapData;
         MatrixDataLoader matrixDataLoader(true);
         DataFrame umapDf;
-        matrixDataLoader.LoadMatrixData("D:/Dropbox/Julian/Patchseq/Data_February_2025/Transcriptomics/umap_seuratQC_mapping_results_SEAAD_NEW_Nov_19th_2024.csv", umapDf, umapData, 10);
+        matrixDataLoader.LoadMatrixData(filePaths.meUMapFilePath, umapDf, umapData, 1);
 
+        // Create dataset
+        Dataset<Points> umapDataset = mv::data().createDataset("Points", "MorphoElectric UMAP", mv::Dataset<DatasetImpl>(), "", false);
+        umapDataset->setData(umapData.data, umapData.numCols);
+        umapDataset->setDimensionNames(umapData.headers);
+
+        events().notifyDatasetAdded(umapDataset);
+        events().notifyDatasetDataChanged(umapDataset);
+
+        // UMAP BiMap
+        BiMap umapBiMap;
+        std::vector<uint32_t> indices(umapDf[CELL_ID_TAG].size());
+        std::iota(indices.begin(), indices.end(), 0);
+        umapBiMap.addKeyValuePairs(umapDf[CELL_ID_TAG], indices);
+
+        _selectionGroup.addDataset(umapDataset, umapBiMap);
+
+#ifdef DALLEYLEE
+        addColorizedClustersFromMetadata(_metadata, umapDataset, _selectionGroup, "Supertype", _cellTypeColors);
+        addColorizedClustersFromMetadata(_metadata, umapDataset, _selectionGroup, "Subclass", _cellTypeColors);
+        addColorizedClustersFromMetadata(_metadata, umapDataset, _selectionGroup, "paradigm");
+        addColorizedClustersFromMetadata(_metadata, umapDataset, _selectionGroup, "lobe");
+#endif
+    }
+
+    // Transcriptomics UMAP
+    if (filePaths.hasTxUMap())
+    {
+        MatrixData umapData;
+        MatrixDataLoader matrixDataLoader(true);
+        DataFrame umapDf;
+        matrixDataLoader.LoadMatrixData(filePaths.txUMapFilePath, umapDf, umapData, 6);
+
+        //// TEMP Check data
+        //float minV = std::numeric_limits<float>::max();
+        //float maxV = -std::numeric_limits<float>::max();
+        //for (int i = 0; i < umapData.data.size(); i++)
+        //{
+        //    if (umapData.data[i] < minV) minV = umapData.data[i];
+        //    if (umapData.data[i] > maxV) maxV = umapData.data[i];
+
+        //    if (umapData.data[i] > 10000)
+        //    {
+        //        qDebug() << i;
+        //    }
+        //}
+        
         // Create dataset
         Dataset<Points> umapDataset = mv::data().createDataset("Points", "Tx UMAP", mv::Dataset<DatasetImpl>(), "", false);
         umapDataset->setData(umapData.data, umapData.numCols);
@@ -469,17 +833,24 @@ void PatchSeqDataLoader::loadData()
         BiMap txUmapBiMap;
         std::vector<uint32_t> indices(umapDf[CELL_ID_TAG].size());
         std::iota(indices.begin(), indices.end(), 0);
-        txUmapBiMap.addKeyValuePairs(umapDf[CELL_ID_TAG], indices);
+        const std::vector<QString>& keys = umapDf[CELL_ID_TAG];
+        for (int i = 0; i < keys.size(); i++)
+        {
+            if (keys[i].isNull() || keys[i].isEmpty())
+                indices[i] = -1;
+        }
 
-        selectionGroup.addDataset(umapDataset, txUmapBiMap);
+        txUmapBiMap.addKeyValuePairs(keys, indices);
+
+        _selectionGroup.addDataset(umapDataset, txUmapBiMap);
 
         // Annotation metadata
         {
             // Create a list of clusters and their indices from the list of cluster names
-            Dataset<Clusters> clusterData = mv::data().createDataset<Clusters>("Cluster", "HANNtype", umapDataset);
+            Dataset<Clusters> clusterData = mv::data().createDataset<Clusters>("Cluster", "Supertype", umapDataset);
 
-            const std::vector<QString>& clusterAsList = umapDf["HANNtype"];
-            std::unordered_map<QString, std::vector<unsigned int>> clusterMap = makeClustersFromList(clusterAsList);
+            const std::vector<QString>& clusterAsList = umapDf["celltype"];
+            std::map<QString, std::vector<unsigned int>> clusterMap = makeClustersFromList(clusterAsList);
 
             for (auto& kv : clusterMap)
             {
@@ -488,8 +859,13 @@ void PatchSeqDataLoader::loadData()
                 cluster.setName(kv.first);
                 cluster.setIndices(kv.second);
 
+#if defined(DALLEYLEE) || defined(WALEBOER)
                 if (_cellTypeColors.contains(cluster.getName()))
                     cluster.setColor(_cellTypeColors[cluster.getName()]);
+#else
+                const QColor& color = _colorTaxonomy.getGroupColor(cluster.getName());
+                cluster.setColor(color);
+#endif
 
                 clusterData->addCluster(cluster);
             }
@@ -497,12 +873,13 @@ void PatchSeqDataLoader::loadData()
             mv::events().notifyDatasetDataChanged(clusterData);
             mv::events().notifyDatasetDataDimensionsChanged(clusterData);
         }
+        // Subclass
         {
             // Create a list of clusters and their indices from the list of cluster names
-            Dataset<Clusters> clusterData = mv::data().createDataset<Clusters>("Cluster", "platform", umapDataset);
+            Dataset<Clusters> clusterData = mv::data().createDataset<Clusters>("Cluster", "Subclass", umapDataset);
 
-            const std::vector<QString>& clusterAsList = umapDf["platform"];
-            std::unordered_map<QString, std::vector<unsigned int>> clusterMap = makeClustersFromList(clusterAsList);
+            const std::vector<QString>& clusterAsList = umapDf["subclass"];
+            std::map<QString, std::vector<unsigned int>> clusterMap = makeClustersFromList(clusterAsList);
 
             for (auto& kv : clusterMap)
             {
@@ -511,17 +888,38 @@ void PatchSeqDataLoader::loadData()
                 cluster.setName(kv.first);
                 cluster.setIndices(kv.second);
 
+#if defined(DALLEYLEE) || defined(WALEBOER)
+                if (_cellTypeColors.contains(cluster.getName()))
+                    cluster.setColor(_cellTypeColors[cluster.getName()]);
+#else
+                const QColor& color = _colorTaxonomy.getGroupColor(cluster.getName());
+                cluster.setColor(color);
+#endif
+
                 clusterData->addCluster(cluster);
             }
-            Cluster::colorizeClusters(clusterData->getClusters(), 0);
 
             mv::events().notifyDatasetDataChanged(clusterData);
             mv::events().notifyDatasetDataDimensionsChanged(clusterData);
         }
+
+#ifdef DALLEYLEE
+        //addColorizedClustersFromMetadata(_metadata, umapDataset, _selectionGroup, "Supertype", _cellTypeColors);
+        //addColorizedClustersFromMetadata(_metadata, umapDataset, _selectionGroup, "Subclass", _cellTypeColors);
+        addColorizedClustersFromMetadata(_metadata, umapDataset, _selectionGroup, "paradigm");
+        addColorizedClustersFromMetadata(_metadata, umapDataset, _selectionGroup, "days_in_culture");
+        addColorizedClustersFromMetadata(_metadata, umapDataset, _selectionGroup, "patched_cell_container");
+        addColorizedClustersFromMetadata(_metadata, umapDataset, _selectionGroup, "donor_name");
+        addColorizedClustersFromMetadata(_metadata, umapDataset, _selectionGroup, "medical_conditions");
+        addColorizedClustersFromMetadata(_metadata, umapDataset, _selectionGroup, "lobe");
+        addColorizedClustersFromMetadata(_metadata, umapDataset, _selectionGroup, "age_label(yrs)");
+        addColorizedClustersFromMetadata(_metadata, umapDataset, _selectionGroup, "sex");
+#endif
     }
 
     // Set cell morphology colors
     {
+        // Get std::vector of cell ids of morphologies
         QStringList ids = _cellMorphoData->getCellIdentifiers();
         std::vector<QString> cellIds(ids.size());
         for (int i = 0; i < ids.size(); i++)
@@ -529,27 +927,31 @@ void PatchSeqDataLoader::loadData()
             cellIds[i] = ids[i];
         }
 
-        std::vector<uint32_t> indices = cellIdBiMap.getValuesByKeys(cellIds);
+        // Map these cell ids to metadata indices
+        std::vector<int> indices = cellIdBiMap.getValuesByKeysWithMissingValue(cellIds, -1);
 
         std::vector<QString> clusterLabels = _metadataDf[METADATA_CLUSTER_LABEL];
 
         for (int i = 0; i < indices.size(); i++)
         {
+            if (indices[i] == -1) continue;
+
             QString label = clusterLabels[indices[i]];
 
+#if defined(DALLEYLEE) || defined(WALEBOER)
             QColor color = _cellTypeColors[label];
             _cellMorphoData->getData()[i].cellTypeColor.set(color.redF(), color.greenF(), color.blueF());
+#else
+            const QColor& color = _colorTaxonomy.getGroupColor(label);
+            _cellMorphoData->getData()[i].cellTypeColor.set(color.redF(), color.greenF(), color.blueF());
+#endif
         }
     }
 
-    selectionGroup.addDataset(_geneExpressionData, gexprBiMap);
-    selectionGroup.addDataset(_morphoData, morphBiMap);
-    selectionGroup.addDataset(_ephysData, ephysBiMap);
-    selectionGroup.addDataset(_ephysTraces, ephysTraceBiMap);
-    selectionGroup.addDataset(_metadata, cellIdBiMap);
-    selectionGroup.addDataset(_cellMorphoData, cellMorphologyBiMap);
+    _selectionGroup.addDataset(_metadata, cellIdBiMap);
+    _selectionGroup.addDataset(_cellMorphoData, cellMorphologyBiMap);
 
-    events().addSelectionGroup(selectionGroup);
+    events().addSelectionGroup(_selectionGroup);
 }
 
 void PatchSeqDataLoader::loadGeneExpressionData(QString filePath, const DataFrame& metadata)
@@ -585,20 +987,34 @@ void PatchSeqDataLoader::loadEphysData(QString filePath, const DataFrame& metada
 
     removeDuplicateRows(_ephysDf, CELL_ID_TAG, matrixData);
     removeRowsNotInMetadata(_ephysDf, CELL_ID_TAG, _metadataDf, matrixData);
+    removeFeatures(matrixData, featuresToDelete);
     //removeRowsWithAllDataMissing(_ephysDf, matrixData);
     matrixData.imputeMissingValues();
     //matrixData.standardize();
 
     _ephysDf.printFirstFewDimensionsOfDataFrame();
-
-    _ephysData = mv::data().createDataset<Points>("Points", QFileInfo(filePath).baseName(), mv::Dataset<DatasetImpl>(), "", false);
+    qDebug() << "PreCreate";
+    _ephysData = mv::data().createDataset<Points>("Points", "Ephys Feature Data", mv::Dataset<DatasetImpl>(), "", false); //QFileInfo(filePath).baseName()
+    qDebug() << "PostCreate";
     _ephysData->setProperty("PatchSeqType", "E");
     _ephysData->setData(matrixData.data, matrixData.numCols);
+
+    // Replace feature names with proper names
+    for (int i = 0; i < matrixData.headers.size(); i++)
+    {
+        QString& header = matrixData.headers[i];
+        if (properEphysFeatureNames.find(header) != properEphysFeatureNames.end())
+        {
+            header = properEphysFeatureNames[header];
+        }
+    }
     _ephysData->setDimensionNames(matrixData.headers);
 
+    qDebug() << "PreAdd";
     events().notifyDatasetAdded(_ephysData);
     events().notifyDatasetDataChanged(_ephysData);
     events().notifyDatasetDataDimensionsChanged(_ephysData);
+    qDebug() << "PostAdd";
 }
 
 void PatchSeqDataLoader::loadMorphologyData(QString filePath, const DataFrame& metadata)
@@ -620,7 +1036,7 @@ void PatchSeqDataLoader::loadMorphologyData(QString filePath, const DataFrame& m
     matrixData.fillMissingValues(0);
     //matrixData.standardize();
 
-    _morphoData = mv::data().createDataset<Points>("Points", QFileInfo(filePath).baseName(), mv::Dataset<DatasetImpl>(), "", false);
+    _morphoData = mv::data().createDataset<Points>("Points", "Morphology Feature Data", mv::Dataset<DatasetImpl>(), "", false); //QFileInfo(filePath).baseName()
     _morphoData->setProperty("PatchSeqType", "M");
     _morphoData->setData(matrixData.data, matrixData.numCols);
 
@@ -642,10 +1058,6 @@ void PatchSeqDataLoader::loadMorphologyData(QString filePath, const DataFrame& m
     // Subset and reorder the metadata
     _morphoMetadata = DataFrame::subsetAndReorderByColumn(metadata, _morphologyDf, CELL_ID_TAG, CELL_ID_TAG);
 
-    // Add cluster meta data
-    addTaxonomyClustersForDf(_morphologyDf, _morphoMetadata, _taxonomyDf, QFileInfo(filePath).baseName(), _morphoData, METADATA_CLUSTER_LABEL);
-    addTaxonomyClustersForDf(_morphologyDf, _morphoMetadata, _taxonomyDf, QFileInfo(filePath).baseName(), _morphoData, METADATA_SUBCLASS_LABEL);
-
     qDebug() << "Successfully loaded" << _morphoData->getNumPoints() << "cell morphologies";
 }
 
@@ -654,11 +1066,13 @@ void PatchSeqDataLoader::loadMorphologyCells(QDir dir)
     Timer timer("SWC Morphology Loading");
 
     // Load morphology cells
-    _cellMorphoData = mv::data().createDataset<CellMorphologies>("Cell Morphology Data", "cell_morphology", mv::Dataset<DatasetImpl>(), "", false);
+    _cellMorphoData = mv::data().createDataset<CellMorphologies>("Cell Morphology Data", "Cell Morphologies", mv::Dataset<DatasetImpl>(), "", false);
     _cellMorphoData->setProperty("PatchSeqType", "Morphologies");
+#if defined(DALLEYLEE) || defined(WALEBOER)
+    _cellMorphoData->setProperty("isCortical", true);
+#endif
 
     QDir morphologyDir(dir);
-    morphologyDir.cd("SWC_LayerAligned");
 
     QStringList swcFiles = morphologyDir.entryList(QStringList() << "*.swc" << "*.SWC", QDir::Files);
 
@@ -691,18 +1105,17 @@ void PatchSeqDataLoader::loadMorphologyCells(QDir dir)
 void PatchSeqDataLoader::loadEphysTraces(QDir dir)
 {
     // Create ephys dataset
-    _ephysTraces = mv::data().createDataset<EphysExperiments>("Electrophysiology Data", "EphysTraces", mv::Dataset<DatasetImpl>(), "", false);
+    _ephysTraces = mv::data().createDataset<EphysExperiments>("Electrophysiology Data", "Ephys Traces", mv::Dataset<DatasetImpl>(), "", false);
     _ephysTraces->setProperty("PatchSeqType", "EphysTraces");
 
     // Find all .nwb files in given directory
     QDir ephysTracesDir(dir);
-    ephysTracesDir.cd("nwb2_files");
 
     QStringList nwbFiles = ephysTracesDir.entryList(QStringList() << "*.nwb" << "*.NWB", QDir::Files);
 
     // Map metadata cell names to cell_ids
-    std::vector<QString> metaCellSpecimenNames = _metadataDf["cell_specimen_name"];
-    std::vector<QString> metaCellIds = _metadataDf["cell_id"];
+    std::vector<QString> metaCellSpecimenNames = _metadataDf[CELL_NAME_TAG];
+    std::vector<QString> metaCellIds = _metadataDf[CELL_ID_TAG];
 
     std::unordered_map<QString, QString> specimenNameToCellId;
     for (size_t i = 0; i < metaCellSpecimenNames.size(); ++i)
@@ -741,19 +1154,22 @@ void PatchSeqDataLoader::loadEphysTraces(QDir dir)
     events().notifyDatasetDataChanged(_ephysTraces);
 }
 
-void PatchSeqDataLoader::loadUMap(QString filePath, mv::Dataset<DatasetImpl> parent, QString datasetName, BiMap& bimap)
+void PatchSeqDataLoader::loadUMap(QString filePath, mv::Dataset<Points> parent, QString datasetName, BiMap& bimap)
 {
     MatrixData umapData;
     MatrixDataLoader matrixDataLoader(false);
     DataFrame umapDf;
     matrixDataLoader.LoadMatrixData(filePath, umapDf, umapData, 1);
-
+    
     // Reorder UMAP points according to parent dataset order
-    std::vector<uint32_t> parentOrder = bimap.getValuesByKeys(umapDf[CELL_ID_TAG]);
-    std::vector<float> reorderedData(umapData.data.size());
+    std::vector<int> parentOrder = bimap.getValuesByKeysWithMissingValue(umapDf[CELL_ID_TAG], -1);
+    std::vector<float> reorderedData(parent->getNumPoints() * 2, 0);
     for (int i = 0; i < umapData.numRows; i++)
     {
         int parentIndex = parentOrder[i];
+        if (parentIndex == -1)
+            continue;
+
         reorderedData[parentIndex * 2 + 0] = umapData.data[i * 2 + 0];
         reorderedData[parentIndex * 2 + 1] = umapData.data[i * 2 + 1];
     }
