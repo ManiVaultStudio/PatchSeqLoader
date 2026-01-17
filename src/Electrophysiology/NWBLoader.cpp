@@ -3,13 +3,16 @@
 #include "StimulusCodeMap.h"
 
 #include "EphysData/Experiment.h"
+#include "EphysData/ActionPotential.h"
 
 #include <QDebug>
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <regex>
 
 #include "LEAD/NWBFile.h"
+#include "Electrophysiology/SpikeExtractor.h"
 
 ///
 #include <iostream>
@@ -135,6 +138,18 @@ namespace
         return false;
     }
 
+    int ExtractStimScale(std::string input)
+    {
+        std::regex re(R"(Stim Scale Factor:\s*([0-9]+)\.)");
+        std::smatch match;
+
+        if (std::regex_search(input, match, re)) {
+            int stimScaleFactor = std::stoi(match[1]);
+            return stimScaleFactor;
+        }
+        return -1;
+    }
+
     void ReadTimeseries(NWBFile& file, std::string groupName, Recording& recording)
     {
         //std::cout << "TIMESERIES " << groupName << std::endl;
@@ -150,7 +165,7 @@ namespace
         //exportToCSV(recording.data.xSeries, recording.data.ySeries, file.getFileName() + "-" + fileName.toStdString() + ".csv");
 
         std::transform(recording.GetData().xSeries.begin(), recording.GetData().xSeries.end(), recording.GetData().xSeries.begin(), [](auto& c) { return c / 1000.0f; });
-        recording.GetData().downsample();
+        //recording.GetData().downsample();
     }
 }
 
@@ -253,15 +268,30 @@ void NWBLoader::LoadNWB(QString fileName, Experiment& experiment, LoadInfo& info
             }
 
             ReadTimeseries(nwbFile, recordingPair.stimulus.GetName(), stimulus);
-
-            totalSize += ((stimulus.GetData().xSeries.size() + stimulus.GetData().ySeries.size()) * sizeof(float)) / 1000000.0f;
-
-            for (auto it = stimulus.GetAttributes().constBegin(); it != stimulus.GetAttributes().constEnd(); ++it)
+            
+            // Extract action potential before downsampling
+            if (stimDescription.contains("SupraThresh"))
             {
-                totalSize += it.value().size() / 1000000.0f;
-                //qDebug() << "Attribute size: " << it.key() << " " << it.value().size();
+                for (const auto& attribute : recordingPair.stimulus.GetAttributes())
+                {
+                    if (attribute.GetName().find("comment") != std::string::npos)
+                    {
+                        int stimScale = ExtractStimScale(attribute.GetValue());
+
+                        if (stimScale == 100)
+                        {
+                            SpikeExtractor extractor;
+                            ActionPotential* actionPotential = extractor.DetectActionPotential(stimulus.GetData(), acquisition.GetData());
+                            experiment.setActionPotential(actionPotential);
+                        }
+                    }
+                }
             }
         }
+
+        // Downsample the recording
+        acquisition.GetData().downsample();
+        stimulus.GetData().downsample();
 
         std::pair<int, int> stimRange = stimulus.GetData().findStimulusRange();
         if (stimRange.first != -1)
