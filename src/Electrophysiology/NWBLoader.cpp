@@ -24,7 +24,7 @@
 #include <windows.h>
 
 using namespace H5;
-
+int failIndex = 0;
 namespace
 {
     void exportToCSV(const std::vector<float>& x, const std::vector<float>& y, const std::string& filename) {
@@ -167,6 +167,41 @@ namespace
         std::transform(recording.GetData().xSeries.begin(), recording.GetData().xSeries.end(), recording.GetData().xSeries.begin(), [](auto& c) { return c / 1000.0f; });
         //recording.GetData().downsample();
     }
+
+    bool DetectFailedAcquisition(const Stimulus& stimulus, const Recording& acquisition)
+    {
+        const TimeSeries& stimSeries = stimulus.GetRecording().GetData();
+
+        int lastSignal = -1;
+        int failCount = 0;
+        for (int i = 0; i < stimSeries.ySeries.size(); i++)
+        {
+            if (abs(stimSeries.ySeries[i]) > 0.001f)
+                lastSignal = i;
+            //if (stimSeries.ySeries[i] > 0.001f && acquisition.GetData().ySeries[i] == 0)
+            //    failCount++;
+            bool acqFail = abs(acquisition.GetData().ySeries[i]) < 0.001f || std::isnan(acquisition.GetData().ySeries[i]);
+
+            if (acqFail && lastSignal != -1 && i - lastSignal < 2000)
+                failCount++;
+            //if (abs(stimSeries.ySeries[i]) > 0.001f && abs(acquisition.GetData().ySeries[i]) < 0.001f)
+            //    failCount++;
+        }
+        //qDebug() << "Fail count: " << failCount;
+        return failCount > 50;
+        //if (failCount > 30)
+        //{
+        //    return true;
+        //}
+
+        //float refValue = recording.GetData().ySeries[recording.GetData().ySeries.size() / 2];
+        //for (int i = recording.GetData().ySeries.size() / 2; i < recording.GetData().ySeries.size(); i++)
+        //{
+        //    if (std::abs(recording.GetData().ySeries[i] - refValue) > 0.001f)
+        //        return false;
+        //}
+        //return true;
+    }
 }
 
 void NWBLoader::LoadNWB(QString fileName, Experiment& experiment, LoadInfo& info)
@@ -289,6 +324,26 @@ void NWBLoader::LoadNWB(QString fileName, Experiment& experiment, LoadInfo& info
             }
         }
 
+        // Detect failed acquisitions
+        //if (stimDescription.contains("Ramp"))
+        //    qDebug() << "Ramp";
+        //if (fileName.contains("H23.06.351.11.56.01.06"))
+        //{
+        //    qDebug() << "Test" << stimSweepNumber;
+        //}
+        //if (failIndex >= 2302)
+        //{
+        //    qDebug() << "Test" << stimSweepNumber;
+        //}
+        bool failed = DetectFailedAcquisition(sweep.stimulus, sweep.acquisition);
+        if (failed)
+        {
+            qDebug() << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Discarded failed acq " << failIndex << stimSweepNumber << stimDescription;
+            //exportToCSV(sweep.acquisition.GetData().xSeries, sweep.acquisition.GetData().ySeries, std::to_string(failIndex) + "_acq.csv");
+            //exportToCSV(sweep.stimulus.GetRecording().GetData().xSeries, sweep.stimulus.GetRecording().GetData().ySeries, std::to_string(failIndex) + "_stim.csv");
+            failIndex += 1;
+            continue;
+        }
         // Downsample the recording
         acquisition.GetData().downsample();
         stimulus.GetData().downsample();
