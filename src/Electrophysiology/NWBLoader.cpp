@@ -158,6 +158,10 @@ namespace
 
         recording.GetData().xSeries.resize(recording.GetData().ySeries.size());
         std::iota(recording.GetData().xSeries.begin(), recording.GetData().xSeries.end(), 0);
+        for (int i = 0; i < recording.GetData().xSeries.size(); i++)
+        {
+            recording.GetData().xSeries[i] *= 0.02f;
+        }
 
         //QString fileName = QString::fromStdString(groupName);
         //fileName = fileName.replace("/", "_");
