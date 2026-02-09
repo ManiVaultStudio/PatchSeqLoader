@@ -163,10 +163,16 @@ namespace
             recording.GetData().xSeries[i] *= 0.02f;
         }
 
-        //QString fileName = QString::fromStdString(groupName);
-        //fileName = fileName.replace("/", "_");
+        /////
+        //std::cout << file.GetFileName() << std::endl;
+        //if (file.GetFileName().find("H19.03.302.11.14.02.05") != std::string::npos)
+        //{
+        //    QString fileName = QString::fromStdString(groupName);
+        //    fileName = fileName.replace("/", "_");
 
-        //exportToCSV(recording.data.xSeries, recording.data.ySeries, file.getFileName() + "-" + fileName.toStdString() + ".csv");
+        //    exportToCSV(recording.GetData().xSeries, recording.GetData().ySeries, file.GetFileName() + "-" + fileName.toStdString() + ".csv");
+        //}
+        /////
 
         std::transform(recording.GetData().xSeries.begin(), recording.GetData().xSeries.end(), recording.GetData().xSeries.begin(), [](auto& c) { return c / 1000.0f; });
         //recording.GetData().downsample();
@@ -258,15 +264,17 @@ void NWBLoader::LoadNWB(QString fileName, Experiment& experiment, LoadInfo& info
         int acqSweepNumber = extractSweepNumber(QString::fromStdString(recordingPair.acquisition.GetName()));
         int stimSweepNumber = extractSweepNumber(QString::fromStdString(recordingPair.stimulus.GetName()));
 
+        if (stimSweepNumber != acqSweepNumber)
+        {
+            qCritical() << "[ERROR] Stimulus has sweep number: " << stimSweepNumber << " but acquisition: " << acqSweepNumber;
+            continue;
+        }
+
         // Recordings should be loaded, so store stimulus description in both recordings
-        Recording acquisition;
-        Recording stimulus;
+        Sweep sweep;
 
-        acquisition.SetSweepNumber(acqSweepNumber);
-        stimulus.SetSweepNumber(stimSweepNumber);
-
-        acquisition.SetStimulusDescription(stimDescription);
-        stimulus.SetStimulusDescription(stimDescription);
+        sweep.SetSweepNumber(stimSweepNumber);
+        sweep.stimulus.SetStimulusDescription(stimDescription);
 
         // Load associated timeseries
         // ACQUISITION
@@ -280,14 +288,14 @@ void NWBLoader::LoadNWB(QString fileName, Experiment& experiment, LoadInfo& info
             {
                 const LEAD::Attribute& attribute = recordingPair.acquisition.GetAttributes()[j];
 
-                acquisition.AddAttribute(QString::fromStdString(attribute.GetName()), QString::fromStdString(attribute.GetValue()));
+                sweep.acquisition.AddAttribute(QString::fromStdString(attribute.GetName()), QString::fromStdString(attribute.GetValue()));
             }
 
-            ReadTimeseries(nwbFile, recordingPair.acquisition.GetName(), acquisition);
+            ReadTimeseries(nwbFile, recordingPair.acquisition.GetName(), sweep.acquisition);
 
-            totalSize += ((acquisition.GetData().xSeries.size() + acquisition.GetData().ySeries.size()) * sizeof(float)) / 1000000.0f;
+            totalSize += ((sweep.acquisition.GetData().xSeries.size() + sweep.acquisition.GetData().ySeries.size()) * sizeof(float)) / 1000000.0f;
 
-            for (auto it = acquisition.GetAttributes().constBegin(); it != acquisition.GetAttributes().constEnd(); ++it)
+            for (auto it = sweep.acquisition.GetAttributes().constBegin(); it != sweep.acquisition.GetAttributes().constEnd(); ++it)
             {
                 totalSize += it.value().size() / 1000000.0f;
                 //qDebug() << "Attribute size: " << it.key() << " " << it.value().size();
@@ -303,25 +311,28 @@ void NWBLoader::LoadNWB(QString fileName, Experiment& experiment, LoadInfo& info
             {
                 const LEAD::Attribute& attribute = recordingPair.stimulus.GetAttributes()[j];
 
-                stimulus.AddAttribute(QString::fromStdString(attribute.GetName()), QString::fromStdString(attribute.GetValue()));
+                sweep.stimulus.GetRecording().AddAttribute(QString::fromStdString(attribute.GetName()), QString::fromStdString(attribute.GetValue()));
             }
 
-            ReadTimeseries(nwbFile, recordingPair.stimulus.GetName(), stimulus);
+            ReadTimeseries(nwbFile, recordingPair.stimulus.GetName(), sweep.stimulus.GetRecording());
             
             // Extract action potential before downsampling
-            if (stimDescription.contains("SupraThresh"))
+            if (stimDescription.contains("Rheo"))
             {
+                SpikeExtractor extractor;
+                ActionPotential* actionPotential = extractor.DetectActionPotential(sweep.stimulus.GetRecording().GetData(), sweep.acquisition.GetData());
+                experiment.setActionPotential(actionPotential);
+
                 for (const auto& attribute : recordingPair.stimulus.GetAttributes())
                 {
                     if (attribute.GetName().find("comment") != std::string::npos)
                     {
                         int stimScale = ExtractStimScale(attribute.GetValue());
 
-                        if (stimScale == 100)
+                        if (true)
+                        //if (stimScale == 100)
                         {
-                            SpikeExtractor extractor;
-                            ActionPotential* actionPotential = extractor.DetectActionPotential(stimulus.GetData(), acquisition.GetData());
-                            experiment.setActionPotential(actionPotential);
+
                         }
                     }
                 }
@@ -348,22 +359,26 @@ void NWBLoader::LoadNWB(QString fileName, Experiment& experiment, LoadInfo& info
             failIndex += 1;
             continue;
         }
-        // Downsample the recording
-        acquisition.GetData().downsample();
-        stimulus.GetData().downsample();
 
-        std::pair<int, int> stimRange = stimulus.GetData().findStimulusRange();
+        // Downsample the recording
+        sweep.acquisition.GetData().downsample();
+        sweep.stimulus.GetRecording().GetData().downsample();
+
+        std::pair<int, int> stimRange = sweep.stimulus.GetRecording().GetData().FindStimulusRange();
         if (stimRange.first != -1)
         {
-            stimulus.GetData().trim(stimRange.first, stimRange.second);
-            acquisition.GetData().trim(stimRange.first, stimRange.second);
+            sweep.stimulus.GetRecording().GetData().trim(stimRange.first, stimRange.second);
+            sweep.acquisition.GetData().trim(stimRange.first, stimRange.second);
         }
+        else
+            continue;
 
-        stimulus.GetData().computeExtents();
-        acquisition.GetData().computeExtents();
+        sweep.stimulus.GetRecording().GetData().computeExtents();
+        sweep.stimulus.CalculateStimulusAmplitude();
+        sweep.stimulus.DetectStimulusType();
+        sweep.acquisition.GetData().computeExtents();
 
-        experiment.addAcquisition(std::move(acquisition));
-        experiment.addStimulus(std::move(stimulus));
+        experiment.AddSweep(std::move(sweep));
     }
 
     //for (int i = 0; i < groups.size(); i++)
@@ -453,8 +468,7 @@ void NWBLoader::LoadNWB(QString fileName, Experiment& experiment, LoadInfo& info
     //    }
     //}
     nwbFile.Close();
-    qDebug() << ">>>>>>>> NUM ACQUISITIONS: " << experiment.getAcquisitions().size();
-    qDebug() << ">>>>>>>> NUM STIMULI: " << experiment.getStimuli().size();
+    qDebug() << ">>>>>>>> NUM SWEEPS: " << experiment.GetSweeps().size();
     std::cout << "Size: " << totalSize << "MB" << std::endl;
 
     //if (experiment.getAcquisitions().size() > 0)
