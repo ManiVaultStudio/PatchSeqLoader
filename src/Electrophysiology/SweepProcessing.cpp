@@ -46,7 +46,7 @@ namespace
             env.area = 0;
             for (int i = env.startIndex; i < env.endIndex; i++)
             {
-                env.area += v[i];
+                env.area += abs(v[i]);
             }
         }
     }
@@ -64,10 +64,12 @@ std::vector<Envelope> ComputeStimulusEnvelopes(Stimulus stimulus)
     if (envelopes.size() <= 1)
         return envelopes;
 
-    float avgPeak = envelopes[0].area / (envelopes[0].endIndex - envelopes[0].startIndex);
-    qDebug() << "Avg peak: " << avgPeak;
-    if (abs(avgPeak) - 50 < 1)
+    //float avgPeak = envelopes[0].area / (envelopes[0].endIndex - envelopes[0].startIndex);
+
+    if (envelopes[0].area < envelopes[1].area / 4)
         envelopes.erase(envelopes.begin()); // Remove test spike (which is around 50mV for ~2000 steps)
+    else
+        qDebug() << "Interesting Envelope area: " << envelopes[0].area << envelopes[1].area;
 
     return envelopes;
 }
