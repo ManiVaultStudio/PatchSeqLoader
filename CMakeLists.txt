@@ -68,6 +68,8 @@ set(EPHYS_SOURCES
     src/Electrophysiology/StimulusCodeMap.h
     src/Electrophysiology/SpikeExtractor.h
     src/Electrophysiology/SpikeExtractor.cpp
+    src/Electrophysiology/SweepProcessing.h
+    src/Electrophysiology/SweepProcessing.cpp
 )
 
 set(QRESOURCES

@@ -13,6 +13,7 @@
 
 #include "LEAD/NWBFile.h"
 #include "Electrophysiology/SpikeExtractor.h"
+#include "Electrophysiology/SweepProcessing.h"
 
 ///
 #include <iostream>
@@ -364,7 +365,15 @@ void NWBLoader::LoadNWB(QString fileName, Experiment& experiment, LoadInfo& info
         sweep.acquisition.GetData().downsample();
         sweep.stimulus.GetRecording().GetData().downsample();
 
-        std::pair<int, int> stimRange = sweep.stimulus.GetRecording().GetData().FindStimulusRange();
+        std::vector<Envelope> stimEnvelopes = ComputeStimulusEnvelopes(sweep.stimulus);
+        if (stimEnvelopes.empty())
+        {
+            qDebug() << "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM Empty Envelopes";
+            continue;
+        }
+
+        std::pair<int, int> stimRange = { stimEnvelopes[0].startIndex, stimEnvelopes[stimEnvelopes.size() - 1].endIndex };
+        //std::pair<int, int> stimRange = sweep.stimulus.GetRecording().GetData().FindStimulusRange();
         if (stimRange.first != -1)
         {
             sweep.stimulus.GetRecording().GetData().trim(stimRange.first, stimRange.second);
