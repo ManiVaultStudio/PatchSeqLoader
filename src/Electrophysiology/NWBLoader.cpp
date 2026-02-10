@@ -101,6 +101,15 @@ namespace
         }
     }
 
+    LEAD::Dataset FindDataset(const Datasets& datasets, std::string datasetName)
+    {
+        for (int i = 0; i < datasets.size(); i++)
+        {
+            if (datasets[i].GetName() == datasetName)
+                return datasets[i];
+        }
+    }
+
     bool FindStimulusDescription(NWBFile& nwbFile, LEAD::Group& group, QString& stimDescription)
     {
         // Check whether the acquisition group has a stimulus description dataset
@@ -159,10 +168,22 @@ namespace
 
         recording.GetData().xSeries.resize(recording.GetData().ySeries.size());
         std::iota(recording.GetData().xSeries.begin(), recording.GetData().xSeries.end(), 0);
-        for (int i = 0; i < recording.GetData().xSeries.size(); i++)
+
+        // Read sampling rate for xSeries
+        std::string rateDatasetName = groupName + "/starting_time";
+        LEAD::Dataset rateDataset = FindDataset(file.GetDatasets(), rateDatasetName);
+        rateDataset.LoadAllAttributes(file.GetFileId());
+        float rate = 1;
+
+        for (const auto& attr : rateDataset.GetAttributes())
         {
-            recording.GetData().xSeries[i] *= 0.02f;
+            if (attr.GetName() == "rate")
+                rate = QString::fromStdString(attr.GetValue()).toFloat();
         }
+
+        float timeStep = (1 / rate);
+        std::transform(recording.GetData().xSeries.begin(), recording.GetData().xSeries.end(), recording.GetData().xSeries.begin(), [timeStep](auto& c) { return c * timeStep; });
+        //recording.GetData().downsample();
 
         /////
         //std::cout << file.GetFileName() << std::endl;
@@ -174,9 +195,6 @@ namespace
         //    exportToCSV(recording.GetData().xSeries, recording.GetData().ySeries, file.GetFileName() + "-" + fileName.toStdString() + ".csv");
         //}
         /////
-
-        std::transform(recording.GetData().xSeries.begin(), recording.GetData().xSeries.end(), recording.GetData().xSeries.begin(), [](auto& c) { return c / 1000.0f; });
-        //recording.GetData().downsample();
     }
 
     bool DetectFailedAcquisition(const Stimulus& stimulus, const Recording& acquisition)
