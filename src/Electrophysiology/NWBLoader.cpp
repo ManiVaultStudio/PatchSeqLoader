@@ -14,6 +14,7 @@
 #include "LEAD/NWBFile.h"
 #include "Electrophysiology/SpikeExtractor.h"
 #include "Electrophysiology/SweepProcessing.h"
+#include "Electrophysiology/FailedSweepDetector.h"
 
 ///
 #include <iostream>
@@ -71,6 +72,12 @@ public:
 
 namespace
 {
+    QString ExtractFileId(const QString& path)
+    {
+        QFileInfo fi(path);
+        return fi.completeBaseName();   // filename without extension
+    }
+
     void ExtractRecordings(const Groups& groups, QHash<QString, RecordingPair>& recordingPairs)
     {
         // Find acquisitions and stimuli
@@ -233,16 +240,25 @@ namespace
     }
 }
 
-void NWBLoader::LoadNWB(QString fileName, Experiment& experiment, LoadInfo& info)
+void NWBLoader::LoadNWB(QString filePath, Experiment& experiment, LoadInfo& info)
 {
     NWBFile nwbFile;
-    nwbFile.Load(fileName.toStdString());
+    nwbFile.Load(filePath.toStdString());
     Groups groups = nwbFile.GetGroups();
 
-    nwbFile.Open(fileName.toStdString());
+    nwbFile.Open(filePath.toStdString());
     bool written = false;
 
     float totalSize = 0;
+    qDebug() << "Filepath: " << filePath;
+
+    QString fileName = ExtractFileId(filePath);
+
+    QHash<QString, QVector<int>> failedSweepDict = LoadFailedSweeps(":met_loader/failed_sweeps.json");
+
+    QVector<int> failedSweeps;
+    if (failedSweepDict.contains(fileName))
+        failedSweeps = failedSweepDict[fileName];
 
     QHash<QString, RecordingPair> recordingPairs;
     ExtractRecordings(groups, recordingPairs);
@@ -286,6 +302,18 @@ void NWBLoader::LoadNWB(QString fileName, Experiment& experiment, LoadInfo& info
         if (stimSweepNumber != acqSweepNumber)
         {
             qCritical() << "[ERROR] Stimulus has sweep number: " << stimSweepNumber << " but acquisition: " << acqSweepNumber;
+            continue;
+        }
+
+        // Check if sweep failed QC
+        bool failedSweep = false;
+        for (const int& sweepNum : failedSweeps)
+            if (sweepNum == acqSweepNumber)
+                failedSweep = true;
+
+        if (failedSweep)
+        {
+            qDebug() << "[" << fileName << "]" << "Discarding failed sweep:" << acqSweepNumber;
             continue;
         }
 
@@ -369,15 +397,21 @@ void NWBLoader::LoadNWB(QString fileName, Experiment& experiment, LoadInfo& info
         //{
         //    qDebug() << "Test" << stimSweepNumber;
         //}
-        bool failed = DetectFailedAcquisition(sweep.stimulus, sweep.acquisition);
-        if (failed)
-        {
-            qDebug() << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Discarded failed acq " << failIndex << stimSweepNumber << stimDescription;
-            //exportToCSV(sweep.acquisition.GetData().xSeries, sweep.acquisition.GetData().ySeries, std::to_string(failIndex) + "_acq.csv");
-            //exportToCSV(sweep.stimulus.GetRecording().GetData().xSeries, sweep.stimulus.GetRecording().GetData().ySeries, std::to_string(failIndex) + "_stim.csv");
-            failIndex += 1;
-            continue;
-        }
+
+        //bool failed = DetectFailedAcquisition(sweep.stimulus, sweep.acquisition);
+        //if (failed)
+        //{
+        //    qDebug() << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Discarded failed acq " << failIndex << stimSweepNumber << stimDescription;
+
+        //    if (stimDescription.contains("ramp", Qt::CaseInsensitive))
+        //    {
+        //        exportToCSV(sweep.acquisition.GetData().xSeries, sweep.acquisition.GetData().ySeries, std::to_string(failIndex) + "_acq.csv");
+        //        exportToCSV(sweep.stimulus.GetRecording().GetData().xSeries, sweep.stimulus.GetRecording().GetData().ySeries, std::to_string(failIndex) + "_stim.csv");
+        //        failIndex += 1;
+        //    }
+
+        //    continue;
+        //}
 
         // Downsample the recording
         sweep.acquisition.GetData().downsample();
