@@ -4,5 +4,6 @@
         <file>SEAAD_colors.csv</file>
         <file>BG_colors.csv</file>
         <file>HMBA_BG_consensus_colors_all_levels.csv</file>
+        <file>failed_sweeps.json</file>
     </qresource>
 </RCC>

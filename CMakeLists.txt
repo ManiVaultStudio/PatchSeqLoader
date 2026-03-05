@@ -70,6 +70,8 @@ set(EPHYS_SOURCES
     src/Electrophysiology/SpikeExtractor.cpp
     src/Electrophysiology/SweepProcessing.h
     src/Electrophysiology/SweepProcessing.cpp
+    src/Electrophysiology/FailedSweepDetector.h
+    src/Electrophysiology/FailedSweepDetector.cpp
 )
 
 set(QRESOURCES
