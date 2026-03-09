@@ -15,6 +15,7 @@
 #include "Electrophysiology/SpikeExtractor.h"
 #include "Electrophysiology/SweepProcessing.h"
 #include "Electrophysiology/FailedSweepDetector.h"
+#include "Electrophysiology/SpikeDetector.h"
 
 ///
 #include <iostream>
@@ -438,6 +439,10 @@ void NWBLoader::LoadNWB(QString filePath, Experiment& experiment, LoadInfo& info
         sweep.stimulus.CalculateStimulusAmplitude();
         sweep.stimulus.DetectStimulusType();
         sweep.acquisition.GetData().computeExtents();
+
+        // Detect spikes
+        std::vector<int> spikeIndices = DetectSpikes(sweep.acquisition.GetData());
+        sweep.acquisition.AddAttribute("NumSpikes", QString::number(static_cast<qulonglong>(spikeIndices.size())));
 
         experiment.AddSweep(std::move(sweep));
     }

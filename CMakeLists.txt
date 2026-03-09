@@ -72,6 +72,8 @@ set(EPHYS_SOURCES
     src/Electrophysiology/SweepProcessing.cpp
     src/Electrophysiology/FailedSweepDetector.h
     src/Electrophysiology/FailedSweepDetector.cpp
+    src/Electrophysiology/SpikeDetector.h
+    src/Electrophysiology/SpikeDetector.cpp
 )
 
 set(QRESOURCES
