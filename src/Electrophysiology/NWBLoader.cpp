@@ -44,7 +44,7 @@ namespace
 
         file << "x,y\n"; // CSV header
 
-        for (size_t i = 0; i < x.size(); ++i) {
+        for (size_t i = 0; i < x.size(); i += 10) {
             file << x[i] << "," << y[i] << "\n";
         }
 
@@ -197,10 +197,10 @@ namespace
         //std::cout << file.GetFileName() << std::endl;
         //if (file.GetFileName().find("H19.03.302.11.14.02.05") != std::string::npos)
         //{
-        //    QString fileName = QString::fromStdString(groupName);
-        //    fileName = fileName.replace("/", "_");
+            //QString fileName = QString::fromStdString(groupName);
+            //fileName = fileName.replace("/", "_");
 
-        //    exportToCSV(recording.GetData().xSeries, recording.GetData().ySeries, file.GetFileName() + "-" + fileName.toStdString() + ".csv");
+            //exportToCSV(recording.GetData().xSeries, recording.GetData().ySeries, file.GetFileName() + "-" + fileName.toStdString() + ".csv");
         //}
         /////
     }
@@ -225,7 +225,7 @@ namespace
             //    failCount++;
         }
         //qDebug() << "Fail count: " << failCount;
-        return failCount > 50;
+        return failCount > 1800;
         //if (failCount > 30)
         //{
         //    return true;
@@ -255,7 +255,7 @@ void NWBLoader::LoadNWB(QString filePath, Experiment& experiment, LoadInfo& info
 
     QString fileName = ExtractFileId(filePath);
 
-    QHash<QString, QVector<int>> failedSweepDict = LoadFailedSweeps(":met_loader/failed_sweeps.json");
+    QHash<QString, QVector<int>> failedSweepDict = LoadFailedSweeps(info.failedSweepPath);
 
     QVector<int> failedSweeps;
     if (failedSweepDict.contains(fileName))

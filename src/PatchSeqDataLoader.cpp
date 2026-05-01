@@ -55,6 +55,7 @@ Q_PLUGIN_METADATA(IID "studio.manivault.PatchSeqDataLoader")
 #define META_PATH "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_July_Cortex/Dalley_simplified_metadata_4_4_2025.csv"
 #define MORPHO_DIR "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_August_2025/SWC_LayerAligned"
 #define TRACES_DIR "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_July_Cortex/Electrophysiology/dalley_cytosplore_nwb"
+#define FAILED_SWEEP_PATH ":met_loader/failed_sweeps_cortex.json"
 
 #define EPHYS_UMAP_PATH "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_November_2025/e_umap.csv"
 #define MORPHO_UMAP_PATH "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_November_2025/m_umap.csv"
@@ -71,16 +72,17 @@ Q_PLUGIN_METADATA(IID "studio.manivault.PatchSeqDataLoader")
 #define METADATA_CLUSTER_LABEL "Group_name"
 #define METADATA_SUBCLASS_LABEL "Subclass_name"
 
-#define TX_PATH ""
+#define TX_PATH "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_June_Macaque/20250519_RSC-204-387_macaque_patchseq_star2.7_cpm_samples_by_genes_cell_ids.csv"
 #define EPHYS_PATH "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_June_Macaque/NHP_ephys_features_20250520.csv"
 #define MORPHO_PATH "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_June_Macaque/RawFeatureWide_dend_20250616.csv"
 #define META_PATH "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_December_Macaque/HANN_filtered_Cytosplore_20251212.csv"
 #define MORPHO_DIR "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_December_Macaque/SWC_files"
 #define TRACES_DIR "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_December_Macaque/NWB_files"
+#define FAILED_SWEEP_PATH ":met_loader/failed_sweeps_bg.json"
 
 #define EPHYS_UMAP_PATH "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_June_Macaque/ephys_umap_s.csv"
 #define MORPHO_UMAP_PATH "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_June_Macaque/morpho_umap_s.csv"
-#define TX_UMAP_PATH ""
+#define TX_UMAP_PATH "D:/Dropbox/Julian/Patchseq/Supplied_Data/Data_June_Macaque/gexpr_UMAP.csv"
 
 #endif
 
@@ -586,17 +588,27 @@ void PatchSeqDataLoader::loadData()
     // Gene expression data
     if (filePaths.hasGeneExpressions())
     {
-        //qDebug() << "Loading gene expression data..";
-        //// Read gene expression file
-        //_task.setSubtaskStarted("Loading Transcriptomics");
-        //loadGeneExpressionData(filePaths.gexprFilePath, _metadataDf);
-        //_task.setSubtaskFinished("Loading Transcriptomics");
+#ifdef KALMBACH
+        qDebug() << "Loading gene expression data..";
+        // Read gene expression file
+        _task.setSubtaskStarted("Loading Transcriptomics");
+        loadGeneExpressionData(filePaths.gexprFilePath, _metadataDf);
+        _task.setSubtaskFinished("Loading Transcriptomics");
+
+        BiMap gexprBiMap;
+        std::vector<uint32_t> gexprIndices(_geneExpressionData->getNumPoints());
+        std::iota(gexprIndices.begin(), gexprIndices.end(), 0);
+        gexprBiMap.addKeyValuePairs(_transcriptomicsDf[CELL_ID_TAG], gexprIndices);
+        qDebug() << "Gexpr: " << _transcriptomicsDf[CELL_ID_TAG].size() << gexprIndices.size();
+
+        _selectionGroup.addDataset(_geneExpressionData, gexprBiMap);
 
         //_gexprMetadata = DataFrame::subsetAndReorderByColumn(_metadataDf, _transcriptomicsDf, CELL_ID_TAG, CELL_ID_TAG);
 
         //// Add cluster meta data
         //addTaxonomyClustersForDf(_transcriptomicsDf, _gexprMetadata, _taxonomyDf, QFileInfo(filePaths.gexprFilePath).baseName(), _geneExpressionData, METADATA_CLUSTER_LABEL);
         //addTaxonomyClustersForDf(_transcriptomicsDf, _gexprMetadata, _taxonomyDf, QFileInfo(filePaths.gexprFilePath).baseName(), _geneExpressionData, METADATA_SUBCLASS_LABEL);
+#endif
     }
 
     if (filePaths.hasEphysFeatures())
@@ -667,10 +679,10 @@ void PatchSeqDataLoader::loadData()
     
     qDebug() << ">>>>>>>>>>>>>> Loading ephys cells";
 
-    if (filePaths.hasEphysTraces())
-        loadEphysTraces(ephysTracesDir);
-    else
-        qDebug() << "No ephys traces directory set, skipping loading..";
+    //if (filePaths.hasEphysTraces())
+    //    loadEphysTraces(ephysTracesDir);
+    //else
+    //    qDebug() << "No ephys traces directory set, skipping loading..";
 
     qDebug() << ">>>>>>>>>>>>>> Making selection group";
     // Make selection group
@@ -724,7 +736,9 @@ void PatchSeqDataLoader::loadData()
 
         // Morphology UMAP
         if (filePaths.hasMorphoUMap())
+        {
             loadUMap(filePaths.morphoUMapFilePath, _morphoData, "Morpho UMAP", morphBiMap);
+        }
 
         _selectionGroup.addDataset(_morphoData, morphBiMap);
 
@@ -805,7 +819,12 @@ void PatchSeqDataLoader::loadData()
         MatrixData umapData;
         MatrixDataLoader matrixDataLoader(true);
         DataFrame umapDf;
+#ifdef DALLEYLEE
         matrixDataLoader.LoadMatrixData(filePaths.txUMapFilePath, umapDf, umapData, 6);
+#endif
+#ifdef KALMBACH
+        matrixDataLoader.LoadMatrixData(filePaths.txUMapFilePath, umapDf, umapData, 1);
+#endif
 
         //// TEMP Check data
         //float minV = std::numeric_limits<float>::max();
@@ -844,6 +863,7 @@ void PatchSeqDataLoader::loadData()
 
         _selectionGroup.addDataset(umapDataset, txUmapBiMap);
 
+#ifdef DALLEYDEE
         // Annotation metadata
         {
             // Create a list of clusters and their indices from the list of cluster names
@@ -915,6 +935,7 @@ void PatchSeqDataLoader::loadData()
         addColorizedClustersFromMetadata(_metadata, umapDataset, _selectionGroup, "age_label(yrs)");
         addColorizedClustersFromMetadata(_metadata, umapDataset, _selectionGroup, "sex");
 #endif
+#endif
     }
 
     // Set cell morphology colors
@@ -960,7 +981,7 @@ void PatchSeqDataLoader::loadGeneExpressionData(QString filePath, const DataFram
 
     MatrixData matrixData;
     MatrixDataLoader matrixDataLoader;
-    matrixDataLoader.LoadMatrixData(filePath, _transcriptomicsDf, matrixData, 3);
+    matrixDataLoader.LoadMatrixData(filePath, _transcriptomicsDf, matrixData, 1);
     //matrixData.standardize();
 
     removeDuplicateRows(_transcriptomicsDf, CELL_ID_TAG, matrixData);
@@ -1125,6 +1146,7 @@ void PatchSeqDataLoader::loadEphysTraces(QDir dir)
 
     // Load NWB files and add them to dataset
     LoadInfo loadInfo;
+    loadInfo.failedSweepPath = FAILED_SWEEP_PATH;
     NWBLoader loader;
     for (int i = 0; i < nwbFiles.size(); i++)
     {
@@ -1161,24 +1183,41 @@ void PatchSeqDataLoader::loadUMap(QString filePath, mv::Dataset<Points> parent, 
     DataFrame umapDf;
     matrixDataLoader.LoadMatrixData(filePath, umapDf, umapData, 1);
     
-    // Reorder UMAP points according to parent dataset order
-    std::vector<int> parentOrder = bimap.getValuesByKeysWithMissingValue(umapDf[CELL_ID_TAG], -1);
-    std::vector<float> reorderedData(parent->getNumPoints() * 2, 0);
-    for (int i = 0; i < umapData.numRows; i++)
-    {
-        int parentIndex = parentOrder[i];
-        if (parentIndex == -1)
-            continue;
+    //// Reorder UMAP points according to parent dataset order
+    //std::vector<int> parentOrder = bimap.getValuesByKeysWithMissingValue(umapDf[CELL_ID_TAG], -1);
+    //std::vector<float> reorderedData(parent->getNumPoints() * 2, 0);
+    //for (int i = 0; i < umapData.numRows; i++)
+    //{
+    //    int parentIndex = parentOrder[i];
+    //    if (parentIndex == -1)
+    //        continue;
 
-        reorderedData[parentIndex * 2 + 0] = umapData.data[i * 2 + 0];
-        reorderedData[parentIndex * 2 + 1] = umapData.data[i * 2 + 1];
-    }
+    //    reorderedData[parentIndex * 2 + 0] = umapData.data[i * 2 + 0];
+    //    reorderedData[parentIndex * 2 + 1] = umapData.data[i * 2 + 1];
+    //}
 
     // Create dataset
-    Dataset<Points> umapDataset = mv::data().createDerivedDataset(datasetName, parent, parent, false);
-    umapDataset->setData(reorderedData, umapData.numCols);
+    Dataset<Points> umapDataset = mv::data().createDataset("Points", datasetName, parent, "", false);
+    //umapDataset->setSourceDataset(parent);
+    umapDataset->setData(umapData.data, umapData.numCols);
     umapDataset->setDimensionNames(umapData.headers);
 
+    // Add bimap
+    BiMap umapBiMap;
+    std::vector<uint32_t> indices(umapDf[CELL_ID_TAG].size());
+    std::iota(indices.begin(), indices.end(), 0);
+    const std::vector<QString>& keys = umapDf[CELL_ID_TAG];
+    for (int i = 0; i < keys.size(); i++)
+    {
+        if (keys[i].isNull() || keys[i].isEmpty())
+            indices[i] = -1;
+    }
+
+    umapBiMap.addKeyValuePairs(keys, indices);
+
+    _selectionGroup.addDataset(umapDataset, umapBiMap);
+
+    // Notify
     events().notifyDatasetAdded(umapDataset);
     events().notifyDatasetDataChanged(umapDataset);
 }
