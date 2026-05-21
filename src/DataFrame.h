@@ -10,11 +10,20 @@ class DataFrame
 public:
     DataFrame();
 
+    bool empty() const;
+
     unsigned int numRows() const;
     unsigned int numCols() const;
+
+    bool hasColumn(const QString& columnName) const;
+    int columnIndex(const QString& columnName) const;
+
     QString getValue(int row, int col);
     const std::vector<QString>& getHeaders() const { return _headers; }
-    std::vector<std::vector<QString>>& getData();
+    std::vector<QString>& getHeaders() { return _headers; }
+
+    const std::vector<std::vector<QString>>& getData() const { return _data; }
+    std::vector<std::vector<QString>>& getData() { return _data; }
 
     int findRowWithColumnValue(QString columnName, QString value);
 

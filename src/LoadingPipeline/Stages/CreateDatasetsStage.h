@@ -1,0 +1,170 @@
+#pragma once
+
+#include "LoadingPipeline/PipelineStage.h"
+#include "LoadingPipeline/PipelineContext.h"
+
+#include "Config/ConfigSchema.h"
+
+#include <PointData/PointData.h>
+
+#include <QString>
+#include <optional>
+
+namespace
+{
+    std::map<QString, std::vector<unsigned int>> MakeClustersFromList(std::vector<QString> list)
+    {
+        std::map<QString, std::vector<unsigned int>> clusterData;
+
+        for (int i = 0; i < list.size(); i++)
+        {
+            const QString& str = list[i];
+            clusterData[str].push_back(i);
+        }
+        return clusterData;
+    }
+}
+
+class CreateDatasetsStage final : public PipelineStage
+{
+public:
+    QString Name() const override
+    {
+        return "CreateDatasets";
+    }
+
+    bool Run(PipelineContext& ctx) override
+    {
+        qDebug() << "Running pipeline stage: " << Name();
+
+        int createdCount = 0;
+
+        CreateTableDatasetIfAvailable(ctx, config::keys::sources::Metadata, ctx.config.metadata, createdCount);
+        CreateTableDatasetIfAvailable(ctx, config::keys::sources::Rna, ctx.config.rna, createdCount);
+        CreateTableDatasetIfAvailable(ctx, config::keys::sources::Ephys, ctx.config.ephys, createdCount);
+        CreateTableDatasetIfAvailable(ctx, config::keys::sources::Morphology, ctx.config.morphology, createdCount);
+
+        CreateEmbeddingDatasetIfAvailable(ctx, config::keys::embeddings::RnaUmap, ctx.config.rnaUmap, ctx.featureDatasets[config::keys::sources::Rna], createdCount);
+        CreateEmbeddingDatasetIfAvailable(ctx, config::keys::embeddings::EphysUmap, ctx.config.ephysUmap, ctx.featureDatasets[config::keys::sources::Ephys], createdCount);
+        CreateEmbeddingDatasetIfAvailable(ctx, config::keys::embeddings::MorphoUmap, ctx.config.morphoUmap, ctx.featureDatasets[config::keys::sources::Morphology], createdCount);
+
+        //for (auto it = ctx.config.extraEmbeddings.begin(); it != ctx.config.extraEmbeddings.end(); ++it)
+        //    CreateExtraEmbeddingDataset(ctx, it.key(), it.value(), createdCount);
+
+        ctx.result.Info(Name(), "Dataset creation complete.", QString("created=%1").arg(createdCount));
+
+        return true;
+    }
+
+private:
+    void CreateTableDatasetIfAvailable(PipelineContext& ctx, const QString& sourceName, const std::optional<config::TableSource>& source, int& createdCount) const
+    {
+        if (!source)
+            return;
+
+        if (!ctx.normalizedTables.contains(sourceName))
+            return;
+
+        AnnotatedData& data = ctx.normalizedTables[sourceName];
+
+        if (sourceName == config::keys::sources::Metadata)
+            CreateMetadataDataset(ctx, sourceName, data, source.value());
+        else
+            CreateFeatureDataset(ctx, sourceName, data, source.value());
+
+        ++createdCount;
+    }
+
+    void CreateEmbeddingDatasetIfAvailable(PipelineContext& ctx, const QString& embeddingName, const std::optional<config::TableSource>& embedding, const Dataset<Points>& parent, int& createdCount) const
+    {
+        if (!embedding)
+            return;
+
+        if (!ctx.normalizedTables.contains(embeddingName))
+            return;
+
+        AnnotatedData& data = ctx.normalizedTables[embeddingName];
+
+        CreateEmbeddingDataset(ctx, embeddingName, data, embedding.value(), parent);
+
+        ++createdCount;
+    }
+
+    //void CreateExtraEmbeddingDataset(PipelineContext& ctx, const QString& embeddingName, const config::Embedding& embedding, int& createdCount) const
+    //{
+    //    if (!ctx.embeddingTables.contains(embeddingName))
+    //        return;
+
+    //    const AnnotatedData& table = ctx.embeddingTables[embeddingName];
+
+    //    createEmbeddingDataset(ctx, embeddingName, table, embedding);
+    //    ++createdCount;
+    //}
+
+    void CreateMetadataDataset(PipelineContext& ctx, const QString& sourceName, AnnotatedData& data, const config::TableSource& config) const
+    {
+        auto textDataset = mv::data().createDataset<Text>("Text", config.displayName, mv::Dataset<mv::DatasetImpl>(), "", false);
+        textDataset->setProperty("PatchSeqType", sourceName);
+        for (int i = 0; i < data.obs.columnNames.size(); i++)
+            textDataset->addColumn(data.obs.columnNames[i], data.obs.values[i]);
+
+        events().notifyDatasetAdded(textDataset);
+        events().notifyDatasetDataChanged(textDataset);
+        events().notifyDatasetDataDimensionsChanged(textDataset);
+
+        ctx.textDatasets.insert(sourceName, textDataset);
+
+
+        {
+            for (int i = 0; i < data.obs.values.size(); i++)
+            {
+                // Create a list of clusters and their indices from the list of cluster names
+                Dataset<Clusters> clusterData = mv::data().createDataset<Clusters>("Cluster", data.obs.columnNames[i], textDataset);
+
+                const std::vector<QString>& clusterAsList = data.obs.values[i];
+                std::map<QString, std::vector<unsigned int>> clusterMap = MakeClustersFromList(clusterAsList);
+
+                for (auto& kv : clusterMap)
+                {
+                    Cluster cluster;
+
+                    cluster.setName(kv.first);
+                    cluster.setIndices(kv.second);
+                    
+                    clusterData->addCluster(cluster);
+                }
+                Cluster::colorizeClusters(clusterData->getClusters());
+
+                mv::events().notifyDatasetDataChanged(clusterData);
+                mv::events().notifyDatasetDataDimensionsChanged(clusterData);
+            }
+        }
+    }
+
+    void CreateFeatureDataset(PipelineContext& ctx, const QString& sourceName, const AnnotatedData& data, const config::TableSource& config) const
+    {
+        auto featureDataset = mv::data().createDataset<Points>("Points", config.displayName, mv::Dataset<mv::DatasetImpl>(), "", false);
+        featureDataset->setProperty("PatchSeqType", sourceName);
+        featureDataset->setData(data.X.values, data.X.columnCount);
+
+        events().notifyDatasetAdded(featureDataset);
+        events().notifyDatasetDataChanged(featureDataset);
+        events().notifyDatasetDataDimensionsChanged(featureDataset);
+
+        ctx.featureDatasets.insert(sourceName, featureDataset);
+    }
+
+    void CreateEmbeddingDataset(PipelineContext& ctx, const QString& embeddingName, const AnnotatedData& data, const config::TableSource& embedding, const Dataset<Points>& parent) const
+    {
+        // TODO: create 2D Points/embedding dataset here.
+        auto embeddingDataset = mv::data().createDataset<Points>("Points", embedding.displayName, parent, "", false);
+        embeddingDataset->setProperty("PatchSeqType", embeddingName);
+        embeddingDataset->setData(data.X.values, data.X.columnCount);
+
+        events().notifyDatasetAdded(embeddingDataset);
+        events().notifyDatasetDataChanged(embeddingDataset);
+        events().notifyDatasetDataDimensionsChanged(embeddingDataset);
+
+        ctx.embeddingDatasets.insert(embeddingName, embeddingDataset);
+    }
+};

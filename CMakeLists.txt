@@ -37,10 +37,14 @@ set(PLUGIN_SOURCES
     src/PatchSeqDataLoader.h
     src/PatchSeqDataLoader.cpp
     src/PatchSeqDataLoader.json
+    src/Schema.h
+    src/Schema.cpp
     src/DataFrame.h
     src/DataFrame.cpp
     src/MatrixData.h
     src/MatrixData.cpp
+    src/TableData.h
+    src/TableData.cpp
     src/InputDialog.h
     src/InputDialog.cpp
     src/ColorTaxonomy.h
@@ -54,7 +58,36 @@ set(PLUGIN_SOURCES
     src/MatrixDataLoader.cpp
     src/CSVReader.h
     src/CSVReader.cpp
+    src/CSVLoader.h
+    src/CSVLoader.cpp
+    src/AnnotatedData.h
+    src/AnnotatedData.cpp
+    src/AnnotatedDataPrinter.h
+    src/AnnotatedDataPrinter.cpp
     src/json.hpp
+)
+
+set(CONFIG_SOURCES
+    src/Config/Config.h
+    src/Config/Config.cpp
+    src/Config/ConfigSchema.h
+)
+
+set(PIPELINE_SOURCES
+    src/LoadingPipeline/Pipeline.h
+    src/LoadingPipeline/Pipeline.cpp
+    src/LoadingPipeline/PipelineStage.h
+    src/LoadingPipeline/PipelineContext.h
+    src/LoadingPipeline/PipelineContext.cpp
+)
+
+set(PIPELINE_STAGE_SOURCES
+    src/LoadingPipeline/Stages/LoadConfigStage.h
+    src/LoadingPipeline/Stages/DiscoverSourcesStage.h
+    src/LoadingPipeline/Stages/LoadTablesStage.h
+    src/LoadingPipeline/Stages/NormalizeTablesStage.h
+    src/LoadingPipeline/Stages/CreateDatasetsStage.h
+    src/LoadingPipeline/Stages/LinkDatasetsStage.h
 )
 
 set(MORPHOLOGY_SOURCES
@@ -86,13 +119,16 @@ set(PLUGIN_MOC_HEADERS
 )
 
 source_group( Plugin FILES ${PLUGIN_SOURCES})
+source_group( Config FILES ${CONFIG_SOURCES})
+source_group( LoadingPipeline FILES ${PIPELINE_SOURCES})
+source_group( LoadingPipeline\\Stages FILES ${PIPELINE_STAGE_SOURCES})
 source_group( Morphology FILES ${MORPHOLOGY_SOURCES})
 source_group( Electrophysiology FILES ${EPHYS_SOURCES})
 
 # -----------------------------------------------------------------------------
 # CMake Target
 # -----------------------------------------------------------------------------
-add_library(${PROJECT_NAME} SHARED ${PLUGIN_SOURCES} ${MORPHOLOGY_SOURCES} ${EPHYS_SOURCES} ${RESOURCE_FILES})
+add_library(${PROJECT_NAME} SHARED ${PLUGIN_SOURCES} ${CONFIG_SOURCES} ${PIPELINE_SOURCES} ${PIPELINE_STAGE_SOURCES} ${MORPHOLOGY_SOURCES} ${EPHYS_SOURCES} ${RESOURCE_FILES})
 
 qt_wrap_cpp(LOADER_MOC ${PLUGIN_MOC_HEADERS} TARGET ${PROJECT_NAME})
 target_sources(${PROJECT_NAME} PRIVATE ${LOADER_MOC})

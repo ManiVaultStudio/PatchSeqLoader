@@ -17,6 +17,11 @@ DataFrame::DataFrame()
 
 }
 
+bool DataFrame::empty() const
+{
+    return _data.empty();
+}
+
 unsigned int DataFrame::numRows() const
 {
     return _data.size();
@@ -27,14 +32,25 @@ unsigned int DataFrame::numCols() const
     return _data[0].size();
 }
 
+bool DataFrame::hasColumn(const QString& columnName) const
+{
+    return columnIndex(columnName) >= 0;
+}
+
+int DataFrame::columnIndex(const QString& columnName) const
+{
+    for (int i = 0; i < static_cast<int>(_headers.size()); i++)
+    {
+        if (_headers[i] == columnName)
+            return i;
+    }
+
+    return -1;
+}
+
 QString DataFrame::getValue(int row, int col)
 {
     return _data[row][col];
-}
-
-std::vector<std::vector<QString>>& DataFrame::getData()
-{
-    return _data;
 }
 
 int DataFrame::findRowWithColumnValue(QString columnName, QString value)
@@ -68,22 +84,34 @@ void DataFrame::readFromFile(QString fileName)
     }
 
     file.close();
-
+    qDebug() << "Pre CSV";
     CSVReader reader;
     reader.LoadCSV(csvStream, _headers, _data);
 }
 
 std::vector<int> DataFrame::findDuplicateRows(QString columnToCheck)
 {
-    // Iterate over rows
-    std::vector<QString> column = (*this)[columnToCheck];
+    std::vector<int> duplicateRows;
+
+    const int col = columnIndex(columnToCheck);
+
+    if (col < 0)
+    {
+        qWarning() << "Cannot find duplicates. Missing column:" << columnToCheck;
+        return duplicateRows;
+    }
 
     QSet<QString> uniqueRows;
-    std::vector<int> duplicateRows;
-    for (int i = 0; i < column.size(); i++)
+
+    for (int i = 0; i < static_cast<int>(_data.size()); i++)
     {
-        if (!uniqueRows.contains(column[i]))
-            uniqueRows.insert(column[i]);
+        if (col >= static_cast<int>(_data[i].size()))
+            continue;
+
+        const QString value = _data[i][col];
+
+        if (!uniqueRows.contains(value))
+            uniqueRows.insert(value);
         else
             duplicateRows.push_back(i);
     }
@@ -160,12 +188,15 @@ void DataFrame::subsetAndReorderAccordingTo(DataFrame& rightDf, QString columnNa
     std::vector<int> ordering;
     for (const QString& cell_id : columnRight)
     {
-        if (indexMap.find(cell_id) == indexMap.end())
+        auto it = indexMap.find(cell_id);
+
+        if (it == indexMap.end())
         {
-            qDebug() << "[subsetAndReorderAccordingTo] Failed to find cell ID: " << cell_id << " in metadata file.";
+            qDebug() << "[subsetAndReorderAccordingTo] Failed to find cell ID:" << cell_id;
+            continue;
         }
-        int index = indexMap[cell_id];
-        ordering.push_back(index);
+
+        ordering.push_back(it->second);
     }
 
     // Subset and reorder metadata
@@ -224,13 +255,23 @@ DataFrame DataFrame::subsetAndReorderByColumn(const DataFrame& leftDf, DataFrame
 
 std::vector<QString> DataFrame::operator[](QString columnName) const
 {
-    int columnIndex = getColumnIndex(columnName);
+    const int col = columnIndex(columnName);
+
+    if (col < 0)
+    {
+        qWarning() << "Could not find column with name:" << columnName;
+        return {};
+    }
 
     std::vector<QString> column;
+    column.reserve(_data.size());
 
-    for (int row = 0; row < _data.size(); row++)
+    for (const auto& row : _data)
     {
-        column.push_back(_data[row][columnIndex]);
+        if (col < static_cast<int>(row.size()))
+            column.push_back(row[col]);
+        else
+            column.push_back({});
     }
 
     return column;

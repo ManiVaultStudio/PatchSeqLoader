@@ -2,6 +2,9 @@
 
 #include <LoaderPlugin.h>
 
+#include "LoadingPipeline/Pipeline.h"
+#include "LoadingPipeline/PipelineContext.h"
+
 #include "DataFrame.h"
 #include "PatchSeqFilePaths.h"
 #include "ColorTaxonomy.h"

@@ -2,6 +2,13 @@
 
 #include "InputDialog.h"
 
+#include "LoadingPipeline/Stages/LoadConfigStage.h"
+#include "LoadingPipeline/Stages/DiscoverSourcesStage.h"
+#include "LoadingPipeline/Stages/LoadTablesStage.h"
+#include "LoadingPipeline/Stages/NormalizeTablesStage.h"
+#include "LoadingPipeline/Stages/CreateDatasetsStage.h"
+#include "LoadingPipeline/Stages/LinkDatasetsStage.h"
+
 #include "MatrixDataLoader.h"
 #include "MatrixData.h"
 
@@ -381,6 +388,24 @@ namespace
         mv::events().notifyDatasetDataChanged(clusterData);
         mv::events().notifyDatasetDataDimensionsChanged(clusterData);
     }
+
+    void ShowPipelineErrors(const PipelineResult& result)
+    {
+        for (const PipelineIssue& issue : result.issues)
+        {
+            const QString prefix =
+                issue.severity == PipelineIssue::Severity::Error ? "ERROR" :
+                issue.severity == PipelineIssue::Severity::Warning ? "WARNING" :
+                "INFO";
+
+            qWarning().noquote()
+                << QString("[%1] %2: %3 %4")
+                .arg(prefix)
+                .arg(issue.stage)
+                .arg(issue.message)
+                .arg(issue.detail);
+        }
+    }
 }
 
 // =============================================================================
@@ -520,6 +545,67 @@ void PatchSeqDataLoader::createClusterData(std::vector<QString> stringList, QStr
 void PatchSeqDataLoader::loadData()
 {
     Q_INIT_RESOURCE(met_loader_resources);
+
+    auto configPath = QString("D:/Dropbox/Julian/Patchseq/Projects/config_basal_ganglia.json");//askUserForConfigPath();
+    if (configPath.isEmpty())
+        return;
+
+    Pipeline pipeline;
+    pipeline.Add(std::make_unique<LoadConfigStage>());
+    pipeline.Add(std::make_unique<DiscoverSourcesStage>());
+    pipeline.Add(std::make_unique<LoadTablesStage>());
+    pipeline.Add(std::make_unique<NormalizeTablesStage>());
+    pipeline.Add(std::make_unique<CreateDatasetsStage>());
+    pipeline.Add(std::make_unique<LinkDatasetsStage>());
+
+    PipelineContext ctx;
+    ctx.configPath = configPath;
+    ctx.task = &_task;
+
+    const auto result = pipeline.Run(ctx);
+    qDebug() << "End of pipeline";
+    //if (!result.Ok())
+    //{
+        ShowPipelineErrors(result);
+        return;
+    //}
+
+    //{
+    //    const auto start = std::chrono::steady_clock::now();
+
+    //    MatrixData matrixData;
+    //    MatrixDataLoader matrixDataLoader(false);
+    //    matrixDataLoader.LoadMatrixData(TX_PATH, _transcriptomicsDf, matrixData, 1);
+
+    //    const auto end = std::chrono::steady_clock::now();
+    //    const auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    //    qDebug().noquote() << QString("[Timing] matrixDataLoader(%1): %2 ms")
+    //        .arg("sourceName")
+    //        .arg(elapsedMs);
+
+    //    qDebug() << matrixData["LOC114679296"][5];
+    //}
+
+    //{
+    //    const auto start = std::chrono::steady_clock::now();
+
+    //    CsvLoader csvLoader;
+    //    AnnotatedData anndata;
+    //    csvLoader.Load(TX_PATH, QStringList(), "cell_id", anndata);
+
+    //    const auto end = std::chrono::steady_clock::now();
+    //    const auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    //    qDebug().noquote() << QString("[Timing] loadTableDataFromCsv(%1): %2 ms")
+    //        .arg("sourceName")
+    //        .arg(elapsedMs);
+
+    //    anndata.Print();
+    //    //qDebug() << res.table.column("LOC114679296")->floats[5];
+    //}
+
+    return;
 
     InputDialog inputDialog(nullptr, *this);
     inputDialog.setModal(true);
@@ -863,7 +949,7 @@ void PatchSeqDataLoader::loadData()
 
         _selectionGroup.addDataset(umapDataset, txUmapBiMap);
 
-#ifdef DALLEYDEE
+#ifdef DALLEYLEE
         // Annotation metadata
         {
             // Create a list of clusters and their indices from the list of cluster names
