@@ -14,7 +14,9 @@
 
 #include <QString>
 #include <QMap>
+#include <QHash>
 #include <QVector>
+#include <QColor>
 
 struct PipelineIssue
 {
@@ -75,11 +77,15 @@ struct PipelineContext
     // Cleaned, normalized tables.
     QMap<QString, AnnotatedData> normalizedTables;
 
+    AnnotatedData metadata;
+
     QMap<QString, mv::Dataset<Points>> featureDatasets;
     QMap<QString, mv::Dataset<Text>> textDatasets;
     QMap<QString, mv::Dataset<Points>> embeddingDatasets;
 
     KeyBasedSelectionGroup selectionGroup;
+
+    QHash<QString, QHash<QString, QColor>> metadataColorMaps;
 
     //// Optional loaded assets.
     //QVector<CellMorphology> morphologyCells;

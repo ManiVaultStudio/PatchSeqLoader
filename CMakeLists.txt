@@ -64,6 +64,8 @@ set(PLUGIN_SOURCES
     src/AnnotatedData.cpp
     src/AnnotatedDataPrinter.h
     src/AnnotatedDataPrinter.cpp
+    src/AnnotatedDataExporter.h
+    src/AnnotatedDataExporter.cpp
     src/json.hpp
 )
 
@@ -86,6 +88,7 @@ set(PIPELINE_STAGE_SOURCES
     src/LoadingPipeline/Stages/DiscoverSourcesStage.h
     src/LoadingPipeline/Stages/LoadTablesStage.h
     src/LoadingPipeline/Stages/NormalizeTablesStage.h
+    src/LOadingPipeline/Stages/CollectMetadataStage.h
     src/LoadingPipeline/Stages/CreateDatasetsStage.h
     src/LoadingPipeline/Stages/LinkDatasetsStage.h
 )

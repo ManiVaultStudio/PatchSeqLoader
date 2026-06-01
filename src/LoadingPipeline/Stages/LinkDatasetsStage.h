@@ -101,16 +101,19 @@ private:
     void AddMetadataToSelectionGroupIfAvailable(PipelineContext& ctx, const QString& sourceName, int& linkedCount)
     {
         if (!ctx.textDatasets.contains(sourceName))
-            return;
-
-        if (!ctx.normalizedTables.contains(sourceName))
         {
-            ctx.result.Warning(Name(), "Dataset is available for linking, but no source table", QString("%1").arg(sourceName));
+            ctx.result.Warning(Name(), "Context text datasets does not contain", QString("%1").arg(sourceName));
             return;
         }
 
-        const AnnotatedData& data = ctx.normalizedTables[sourceName];
-        const mv::Dataset<Points>& dataset = ctx.textDatasets[sourceName];
+        //if (!ctx.normalizedTables.contains(sourceName))
+        //{
+        //    ctx.result.Warning(Name(), "Dataset is available for linking, but no source table", QString("%1").arg(sourceName));
+        //    return;
+        //}
+
+        const AnnotatedData& data = ctx.metadata;
+        const mv::Dataset<Text>& dataset = ctx.textDatasets[sourceName];
 
         ctx.selectionGroup.addDataset(dataset, data.obs.index);
 

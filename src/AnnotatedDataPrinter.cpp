@@ -76,8 +76,8 @@ void AnnotatedDataPrinter::PrintAnnotationTable(const char* name, const Annotati
         {
             QString value;
 
-            if (row < table.values.size() && col < table.values[row].size())
-                value = table.values[row][col];
+            if (col < table.values.size() && row < table.values[col].size())
+                value = table.values[col][row];
 
             output_ << std::setw(CELL_WIDTH) << FormatString(value);
         }

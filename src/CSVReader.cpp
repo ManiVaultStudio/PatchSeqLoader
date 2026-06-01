@@ -2,6 +2,8 @@
 
 #include "csv.hpp"
 
+#include <QDebug>
+
 void CSVReader::LoadCSV(QString filePath, std::vector<QString>& headers, std::vector<std::vector<QString>>& data)
 {
     csv::CSVFormat format;
@@ -40,8 +42,11 @@ void CSVReader::LoadCSV(std::stringstream& sstream, std::vector<QString>& header
     }
 
     data.clear();
+    int i = 0;
     for (csv::CSVRow& row : reader)
     {
+        i++;
+        qDebug() << "Row" << i;
         std::vector<QString> dataRow;
         for (csv::CSVField& field : row) {
             dataRow.push_back(QString::fromStdString(field.get<>()));

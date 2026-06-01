@@ -1,5 +1,7 @@
 #include "MatrixData.h"
 
+#include "AnnotatedData.h"
+
 #include <QDebug>
 
 #include <unordered_set>

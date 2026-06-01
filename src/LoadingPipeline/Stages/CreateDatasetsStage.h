@@ -39,7 +39,7 @@ public:
 
         int createdCount = 0;
 
-        CreateTableDatasetIfAvailable(ctx, config::keys::sources::Metadata, ctx.config.metadata, createdCount);
+        CreateMetadataDataset(ctx, config::keys::sources::Metadata, ctx.metadata, ctx.config.metadata.value());
         CreateTableDatasetIfAvailable(ctx, config::keys::sources::Rna, ctx.config.rna, createdCount);
         CreateTableDatasetIfAvailable(ctx, config::keys::sources::Ephys, ctx.config.ephys, createdCount);
         CreateTableDatasetIfAvailable(ctx, config::keys::sources::Morphology, ctx.config.morphology, createdCount);
@@ -114,30 +114,41 @@ private:
 
         ctx.textDatasets.insert(sourceName, textDataset);
 
-
+        for (int i = 0; i < data.obs.values.size(); i++)
         {
-            for (int i = 0; i < data.obs.values.size(); i++)
+            Dataset<Clusters> clusterData = mv::data().createDataset<Clusters>("Cluster", data.obs.columnNames[i], textDataset);
+
+            const std::vector<QString>& clusterAsList = data.obs.values[i];
+            std::map<QString, std::vector<unsigned int>> clusterMap = MakeClustersFromList(clusterAsList);
+
+            const auto colorMapIt = ctx.metadataColorMaps.find(data.obs.columnNames[i]);
+
+            const bool hasColorMap = colorMapIt != ctx.metadataColorMaps.end();
+
+            for (auto& kv : clusterMap)
             {
-                // Create a list of clusters and their indices from the list of cluster names
-                Dataset<Clusters> clusterData = mv::data().createDataset<Clusters>("Cluster", data.obs.columnNames[i], textDataset);
+                Cluster cluster;
 
-                const std::vector<QString>& clusterAsList = data.obs.values[i];
-                std::map<QString, std::vector<unsigned int>> clusterMap = MakeClustersFromList(clusterAsList);
+                cluster.setName(kv.first);
+                cluster.setIndices(kv.second);
 
-                for (auto& kv : clusterMap)
+                if (hasColorMap)
                 {
-                    Cluster cluster;
+                    const QHash<QString, QColor>& colorMap = colorMapIt.value();
+                    const auto colorIt = colorMap.find(kv.first);
 
-                    cluster.setName(kv.first);
-                    cluster.setIndices(kv.second);
-                    
-                    clusterData->addCluster(cluster);
+                    if (colorIt != colorMap.end())
+                        cluster.setColor(colorIt.value());
                 }
+
+                clusterData->addCluster(cluster);
+            }
+
+            if (!hasColorMap)
                 Cluster::colorizeClusters(clusterData->getClusters());
 
-                mv::events().notifyDatasetDataChanged(clusterData);
-                mv::events().notifyDatasetDataDimensionsChanged(clusterData);
-            }
+            mv::events().notifyDatasetDataChanged(clusterData);
+            mv::events().notifyDatasetDataDimensionsChanged(clusterData);
         }
     }
 

@@ -6,8 +6,6 @@
 
 #include <stdexcept>
 
-// Magic number that represents a missing value, to be imputed
-constexpr float MISSING_VALUE = 1234567.0f;
 constexpr char DELIMITER = ',';
 
 namespace

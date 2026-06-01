@@ -4,6 +4,10 @@
 
 #include <QString>
 #include <QStringList>
+#include <QHash>
+
+// Magic number that represents a missing value, to be imputed
+constexpr float MISSING_VALUE = 1234567.0f;
 
 class AnnotationTable
 {
@@ -39,6 +43,12 @@ public:
     std::vector<uint8_t> imputed;
 };
 
+struct NamedNumericMatrix
+{
+    std::vector<QString> columnNames;
+    NumericMatrix matrix;
+};
+
 class AnnotatedData
 {
 public:
@@ -47,6 +57,7 @@ public:
 
 public:
     AnnotationTable obs;
+    QHash<QString, NamedNumericMatrix> obsm;
     AnnotationTable var;
     NumericMatrix X;
 private:

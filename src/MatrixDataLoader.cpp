@@ -1,5 +1,6 @@
 #include "MatrixDataLoader.h"
 
+#include "AnnotatedData.h"
 #include "MatrixData.h"
 
 #include <LoaderPlugin.h>
