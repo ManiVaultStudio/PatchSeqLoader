@@ -39,7 +39,6 @@ public:
 
         int createdCount = 0;
 
-        CreateMetadataDataset(ctx, config::keys::sources::Metadata, ctx.metadata, ctx.config.metadata.value());
         CreateTableDatasetIfAvailable(ctx, config::keys::sources::Rna, ctx.config.rna, createdCount);
         CreateTableDatasetIfAvailable(ctx, config::keys::sources::Ephys, ctx.config.ephys, createdCount);
         CreateTableDatasetIfAvailable(ctx, config::keys::sources::Morphology, ctx.config.morphology, createdCount);
@@ -47,6 +46,8 @@ public:
         CreateEmbeddingDatasetIfAvailable(ctx, config::keys::embeddings::RnaUmap, ctx.config.rnaUmap, ctx.featureDatasets[config::keys::sources::Rna], createdCount);
         CreateEmbeddingDatasetIfAvailable(ctx, config::keys::embeddings::EphysUmap, ctx.config.ephysUmap, ctx.featureDatasets[config::keys::sources::Ephys], createdCount);
         CreateEmbeddingDatasetIfAvailable(ctx, config::keys::embeddings::MorphoUmap, ctx.config.morphoUmap, ctx.featureDatasets[config::keys::sources::Morphology], createdCount);
+
+        CreateMetadataDataset(ctx, config::keys::sources::Metadata, ctx.metadata, ctx.config.metadata.value());
 
         //for (auto it = ctx.config.extraEmbeddings.begin(); it != ctx.config.extraEmbeddings.end(); ++it)
         //    CreateExtraEmbeddingDataset(ctx, it.key(), it.value(), createdCount);

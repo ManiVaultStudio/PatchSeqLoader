@@ -82,6 +82,8 @@ struct PipelineContext
     QMap<QString, mv::Dataset<Points>> featureDatasets;
     QMap<QString, mv::Dataset<Text>> textDatasets;
     QMap<QString, mv::Dataset<Points>> embeddingDatasets;
+    mv::Dataset<EphysExperiments> ephysTraces;
+    mv::Dataset<CellMorphologies> cellMorphologies;
 
     KeyBasedSelectionGroup selectionGroup;
 

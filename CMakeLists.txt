@@ -89,6 +89,7 @@ set(PIPELINE_STAGE_SOURCES
     src/LoadingPipeline/Stages/LoadTablesStage.h
     src/LoadingPipeline/Stages/NormalizeTablesStage.h
     src/LOadingPipeline/Stages/CollectMetadataStage.h
+    src/LOadingPipeline/Stages/LoadAssetsStage.h
     src/LoadingPipeline/Stages/CreateDatasetsStage.h
     src/LoadingPipeline/Stages/LinkDatasetsStage.h
 )

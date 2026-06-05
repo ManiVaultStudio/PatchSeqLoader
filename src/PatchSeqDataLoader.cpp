@@ -557,6 +557,7 @@ void PatchSeqDataLoader::loadData()
     pipeline.Add(std::make_unique<LoadTablesStage>());
     pipeline.Add(std::make_unique<NormalizeTablesStage>());
     pipeline.Add(std::make_unique<CollectMetadataStage>());
+    pipeline.Add(std::make_unique<LoadAssetsStage>());
     pipeline.Add(std::make_unique<CreateDatasetsStage>());
     pipeline.Add(std::make_unique<LinkDatasetsStage>());
 

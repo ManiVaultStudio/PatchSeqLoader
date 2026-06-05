@@ -426,7 +426,7 @@ namespace config
                     extraEmbeddings.insert(key, *embedding);
             }
         }
-
+        
         // Resolve relative paths against the config file location.
         ResolveTableSourcePath(filePath, rna);
         ResolveTableSourcePath(filePath, ephys);
