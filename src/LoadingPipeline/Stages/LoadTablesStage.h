@@ -39,7 +39,7 @@ public:
 
         if (loadedCount == 0)
         {
-            ctx.result.Warning(Name(), "No source tables were loaded.", "The config may contain only assets/embeddings, or configured source files may be missing.");
+            ctx.result.Warning(Name(), "No source tables were loaded.", "The config may contain only non-table sources/embeddings, or configured source files may be missing.");
         }
 
         ctx.result.Info(Name(), "Table loading complete.", QString("loaded=%1, skipped=%2, failed=%3")

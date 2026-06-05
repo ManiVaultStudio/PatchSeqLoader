@@ -106,6 +106,7 @@ private:
     {
         auto textDataset = mv::data().createDataset<Text>("Text", config.displayName, mv::Dataset<mv::DatasetImpl>(), "", false);
         textDataset->setProperty("PatchSeqType", sourceName);
+        textDataset->addColumn(data.obs.indexName, data.obs.index);
         for (int i = 0; i < data.obs.columnNames.size(); i++)
             textDataset->addColumn(data.obs.columnNames[i], data.obs.values[i]);
 

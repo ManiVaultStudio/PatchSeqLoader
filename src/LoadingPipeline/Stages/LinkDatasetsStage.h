@@ -35,6 +35,10 @@ public:
 
         AddMetadataToSelectionGroupIfAvailable(ctx, config::keys::sources::Metadata, linkedCount);
 
+        // Link ephys and morpho reconstructions
+        AddEphysTracesToSelectionGroupIfAvailable(ctx, linkedCount);
+        AddMorphologiesToSelectionGroupIfAvailable(ctx, linkedCount);
+
         events().addSelectionGroup(ctx.selectionGroup);
 
         ctx.result.Info(Name(), "Dataset linking complete.", QString("linked=%1").arg(linkedCount));
@@ -116,6 +120,38 @@ private:
         const mv::Dataset<Text>& dataset = ctx.textDatasets[sourceName];
 
         ctx.selectionGroup.addDataset(dataset, data.obs.index);
+
+        ++linkedCount;
+    }
+
+    void AddEphysTracesToSelectionGroupIfAvailable(PipelineContext& ctx, int& linkedCount)
+    {
+        if (!ctx.ephysTraces.isValid())
+            return;
+
+        if (ctx.ephysTraceCellIds.empty())
+        {
+            ctx.result.Warning(Name(), "Ephys traces dataset is available for linking, but no cell IDs were stored.");
+            return;
+        }
+
+        ctx.selectionGroup.addDataset(ctx.ephysTraces, ctx.ephysTraceCellIds);
+
+        ++linkedCount;
+    }
+
+    void AddMorphologiesToSelectionGroupIfAvailable(PipelineContext& ctx, int& linkedCount)
+    {
+        if (!ctx.cellMorphologies.isValid())
+            return;
+
+        if (ctx.morphologyCellIds.empty())
+        {
+            ctx.result.Warning(Name(), "Morphology dataset is available for linking, but no cell IDs were stored.");
+            return;
+        }
+
+        ctx.selectionGroup.addDataset(ctx.cellMorphologies, ctx.morphologyCellIds);
 
         ++linkedCount;
     }

@@ -18,11 +18,7 @@ namespace
     QString ReadString(const QJsonObject& object, const QString& key, const QString& fallback = {})
     {
         const QJsonValue value = object.value(key);
-
-        if (!value.isString())
-            return fallback;
-
-        return value.toString();
+        return value.isString() ? value.toString() : fallback;
     }
 
     bool HasObject(const QJsonObject& object, const QString& key)
@@ -44,7 +40,6 @@ namespace
         }
 
         QStringList strings;
-
         const QJsonArray array = value.toArray();
 
         for (const QJsonValue& item : array)
@@ -61,20 +56,13 @@ namespace
         return strings;
     }
 
-    bool ReadObsColumns(const QJsonObject& object, const QString& sourceKey, config::TableSource& source)
+    bool ReadObsColumns(const QJsonObject& object, const QString& sourcePath, config::TableSource& source)
     {
         const std::optional<QStringList> obsColumns = ReadStringArray(object, config::keys::ObsColumns);
 
         if (!obsColumns)
         {
-            qWarning()
-                << "Config source" << sourceKey
-                << "has missing or invalid field:"
-                << QString("%1.%2.%3")
-                .arg(config::keys::Sources,
-                    sourceKey,
-                    config::keys::ObsColumns);
-
+            qWarning() << "Config table source" << sourcePath << "has missing or invalid field:" << QString("%1.%2").arg(sourcePath, config::keys::ObsColumns);
             return false;
         }
 
@@ -82,10 +70,7 @@ namespace
 
         if (containsWildcard && obsColumns->size() > 1)
         {
-            qWarning()
-                << "Config source" << sourceKey
-                << "has invalid obs_columns. The wildcard \"*\" cannot be mixed with explicit columns.";
-
+            qWarning() << "Config table source" << sourcePath << "has invalid obs_columns. The wildcard \"*\" cannot be mixed with explicit columns.";
             return false;
         }
 
@@ -103,27 +88,25 @@ namespace
         return true;
     }
 
-    std::optional<config::TableSource> ReadTableSource(const QJsonObject& sources, const QString& key)
+    std::optional<config::TableSource> ReadTableSource(const QJsonObject& parent, const QString& key, const QString& parentPath)
     {
-        if (!sources.contains(key))
+        const QString sourcePath = QString("%1.%2").arg(parentPath, key);
+
+        if (!parent.contains(key))
         {
-            qInfo() << "Config source" << key << "is not present; skipping it.";
+            qInfo() << "Config table source" << sourcePath << "is not present; skipping it.";
             return std::nullopt;
         }
 
-        if (!sources.value(key).isObject())
+        if (!parent.value(key).isObject())
         {
-            qWarning() << "Config source" << key << "exists but is not an object. Expected:" << QString("\"%1\": { \"%2\": \"...\", \"%3\": \"...\", \"%4\": \"...\", \"%5\": [...] }")
-                .arg(key,
-                    config::keys::Path,
-                    config::keys::DisplayName,
-                    config::keys::Index,
-                    config::keys::ObsColumns);
-
+            qWarning() << "Config table source" << sourcePath << "exists but is not an object. Expected:"
+                << QString("\"%1\": { \"%2\": \"...\", \"%3\": \"...\", \"%4\": \"...\", \"%5\": [...] }")
+                    .arg(key, config::keys::Path, config::keys::DisplayName, config::keys::Index, config::keys::ObsColumns);
             return std::nullopt;
         }
 
-        const QJsonObject object = sources.value(key).toObject();
+        const QJsonObject object = parent.value(key).toObject();
 
         config::TableSource source;
         source.path = ReadString(object, config::keys::Path);
@@ -132,107 +115,128 @@ namespace
 
         if (source.path.isEmpty())
         {
-            qWarning() << "Config source" << key << "has no path. Expected field:" << QString("%1.%2.%3")
-                .arg(config::keys::Sources, key, config::keys::Path);
-
+            qWarning() << "Config table source" << sourcePath << "has no path. Expected field:" << QString("%1.%2").arg(sourcePath, config::keys::Path);
             return std::nullopt;
         }
 
         if (source.displayName.isEmpty())
         {
-            qWarning() << "Config source" << key << "has no display name. Expected field:" << QString("%1.%2.%3")
-                .arg(config::keys::Sources, key, config::keys::DisplayName);
-
+            qWarning() << "Config table source" << sourcePath << "has no display name. Expected field:" << QString("%1.%2").arg(sourcePath, config::keys::DisplayName);
             return std::nullopt;
         }
 
         if (source.index.isEmpty())
         {
-            qWarning() << "Config source" << key << "has no index column. Expected field:" << QString("%1.%2.%3")
-                .arg(config::keys::Sources, key, config::keys::Index);
-
+            qWarning() << "Config table source" << sourcePath << "has no index column. Expected field:" << QString("%1.%2").arg(sourcePath, config::keys::Index);
             return std::nullopt;
         }
 
-        if (!ReadObsColumns(object, key, source))
+        if (!ReadObsColumns(object, sourcePath, source))
             return std::nullopt;
 
         if (source.obsColumnMode == config::ObsColumnMode::All)
-            qInfo() << "Loaded config source" << key << "from" << source.path << "using index column" << source.index << "with all non-index columns treated as obs columns.";
+            qInfo() << "Loaded config table source" << sourcePath << "from" << source.path << "using index column" << source.index << "with all non-index columns treated as obs columns.";
         else
-            qInfo() << "Loaded config source" << key << "from" << source.path << "using index column" << source.index << "with" << source.obsColumns.size() << "explicit obs columns.";
+            qInfo() << "Loaded config table source" << sourcePath << "from" << source.path << "using index column" << source.index << "with" << source.obsColumns.size() << "explicit obs columns.";
 
         return source;
     }
 
-    //std::optional<config::TableSource> ReadEmbedding(const QJsonObject& embeddings, const QString& key)
-    //{
-    //    if (!HasObject(embeddings, key))
-    //        return std::nullopt;
-
-    //    const QJsonObject object = embeddings.value(key).toObject();
-
-    //    config::TableSource embedding;
-    //    embedding.path = ReadString(object, config::keys::Path);
-    //    embedding.displayName = ReadString(object, config::keys::DisplayName);
-    //    embedding.index = ReadString(object, config::keys::Index);
-
-    //    if (embedding.path.isEmpty())
-    //    {
-    //        qWarning() << "Embedding" << key << "has no path; ignoring it. Expected field:" << QString("%1.%2.%3").arg(config::keys::Embeddings, key, config::keys::Path);
-    //        return std::nullopt;
-    //    }
-
-    //    if (embedding.index.isEmpty())
-    //    {
-    //        qWarning() << "Embedding" << key << "has no index column; ignoring it. Expected field:" << QString("%1.%2.%3").arg(config::keys::Embeddings, key, config::keys::Index);
-    //        return std::nullopt;
-    //    }
-
-    //    if (embedding.displayName.isEmpty())
-    //        embedding.displayName = key;
-
-    //    if (!ReadObsColumns(object, key, embedding))
-    //        return std::nullopt;
-
-    //    if (embedding.obsColumnMode == config::ObsColumnMode::All)
-    //        qInfo() << "Loaded config source" << key << "from" << embedding.path << "using index column" << embedding.index << "with all non-index columns treated as obs columns.";
-    //    else
-    //        qInfo() << "Loaded config source" << key << "from" << embedding.path << "using index column" << embedding.index << "with" << source.obsColumns.size() << "explicit obs columns.";
-
-
-    //    return embedding;
-    //}
-
-    config::AssetDirectories ReadAssetDirectories(const QJsonObject& root)
+    std::optional<config::EphysTracesSource> ReadEphysTracesSource(const QJsonObject& sources, const QString& key)
     {
-        config::AssetDirectories directories;
+        const QString sourcePath = QString("%1.%2").arg(config::keys::Sources, key);
 
-        if (!HasObject(root, config::keys::Assets))
-            return directories;
+        if (!sources.contains(key))
+        {
+            qInfo() << "Config source" << sourcePath << "is not present; skipping it.";
+            return std::nullopt;
+        }
 
-        const QJsonObject assets = root.value(config::keys::Assets).toObject();
+        if (!sources.value(key).isObject())
+        {
+            qWarning() << "Config source" << sourcePath << "exists but is not an object.";
+            return std::nullopt;
+        }
 
-        if (!HasObject(assets, config::keys::Directories))
-            return directories;
+        const QJsonObject object = sources.value(key).toObject();
 
-        const QJsonObject dirs = assets.value(config::keys::Directories).toObject();
+        config::EphysTracesSource source;
+        source.directory = ReadString(object, config::keys::Directory);
+        source.failedSweepsPath = ReadString(object, config::keys::FailedSweepsPath);
+        source.displayName = ReadString(object, config::keys::DisplayName);
+        source.filenameMetadataColumn = ReadString(object, config::keys::FilenameMetadataColumn);
 
-        directories.morphologyReconstruction = ReadString(dirs, config::keys::assets::MorphologyReconstruction);
-        directories.ephysTraces = ReadString(dirs, config::keys::assets::EphysTraces);
+        if (source.directory.isEmpty())
+        {
+            qWarning() << "Config source" << sourcePath << "has no directory. Expected field:" << QString("%1.%2").arg(sourcePath, config::keys::Directory);
+            return std::nullopt;
+        }
 
-        return directories;
+        if (source.displayName.isEmpty())
+        {
+            qWarning() << "Config source" << sourcePath << "has no display name. Expected field:" << QString("%1.%2").arg(sourcePath, config::keys::DisplayName);
+            return std::nullopt;
+        }
+
+        if (source.filenameMetadataColumn.isEmpty())
+        {
+            qWarning() << "Config source" << sourcePath << "has no filename metadata column. Expected field:" << QString("%1.%2").arg(sourcePath, config::keys::FilenameMetadataColumn);
+            return std::nullopt;
+        }
+
+        qInfo() << "Loaded config source" << sourcePath << "from directory" << source.directory << "using metadata filename column" << source.filenameMetadataColumn;
+        return source;
+    }
+
+    std::optional<config::MorphologyReconstructionsSource> ReadMorphologyReconstructionsSource(const QJsonObject& sources, const QString& key)
+    {
+        const QString sourcePath = QString("%1.%2").arg(config::keys::Sources, key);
+
+        if (!sources.contains(key))
+        {
+            qInfo() << "Config source" << sourcePath << "is not present; skipping it.";
+            return std::nullopt;
+        }
+
+        if (!sources.value(key).isObject())
+        {
+            qWarning() << "Config source" << sourcePath << "exists but is not an object.";
+            return std::nullopt;
+        }
+
+        const QJsonObject object = sources.value(key).toObject();
+
+        config::MorphologyReconstructionsSource source;
+        source.directory = ReadString(object, config::keys::Directory);
+        source.displayName = ReadString(object, config::keys::DisplayName);
+        source.filenameMetadataColumn = ReadString(object, config::keys::FilenameMetadataColumn);
+
+        if (source.directory.isEmpty())
+        {
+            qWarning() << "Config source" << sourcePath << "has no directory. Expected field:" << QString("%1.%2").arg(sourcePath, config::keys::Directory);
+            return std::nullopt;
+        }
+
+        if (source.displayName.isEmpty())
+        {
+            qWarning() << "Config source" << sourcePath << "has no display name. Expected field:" << QString("%1.%2").arg(sourcePath, config::keys::DisplayName);
+            return std::nullopt;
+        }
+
+        if (source.filenameMetadataColumn.isEmpty())
+        {
+            qWarning() << "Config source" << sourcePath << "has no filename metadata column. Expected field:" << QString("%1.%2").arg(sourcePath, config::keys::FilenameMetadataColumn);
+            return std::nullopt;
+        }
+
+        qInfo() << "Loaded config source" << sourcePath << "from directory" << source.directory << "using metadata filename column" << source.filenameMetadataColumn;
+        return source;
     }
 
     void ValidateKnownFormat(const QString& format)
     {
         if (format != config::keys::values::CytosplorePatchSeqConfig)
-        {
-            qWarning()
-                << "Unexpected config format:"
-                << format
-                << "Expected:" << config::keys::values::CytosplorePatchSeqConfig;
-        }
+            qWarning() << "Unexpected config format:" << format << "Expected:" << config::keys::values::CytosplorePatchSeqConfig;
     }
 
     void WarnUnknownSourceKeys(const QJsonObject& sources)
@@ -241,19 +245,15 @@ namespace
             config::keys::sources::Rna,
             config::keys::sources::Ephys,
             config::keys::sources::Morphology,
-            config::keys::sources::Metadata
+            config::keys::sources::Metadata,
+            config::keys::sources::EphysTraces,
+            config::keys::sources::MorphologyReconstructions
         };
 
         for (auto it = sources.begin(); it != sources.end(); ++it)
         {
             if (!knownKeys.contains(it.key()))
-            {
-                qWarning()
-                    << "Unknown source key in config:"
-                    << it.key()
-                    << "Known source keys are:"
-                    << QStringList(knownKeys.begin(), knownKeys.end()).join(", ");
-            }
+                qWarning() << "Unknown source key in config:" << it.key() << "Known source keys are:" << QStringList(knownKeys.begin(), knownKeys.end()).join(", ");
         }
     }
 
@@ -262,23 +262,33 @@ namespace
         if (path.isEmpty())
             return path;
 
-        QFileInfo info(path);
+        const QFileInfo info(path);
 
         if (info.isAbsolute())
             return path;
 
-        const QFileInfo configInfo(configFilePath);
-        const QDir configDir = configInfo.absoluteDir();
-
-        return configDir.filePath(path);
+        return QFileInfo(configFilePath).absoluteDir().filePath(path);
     }
 
     void ResolveTableSourcePath(const QString& configFilePath, std::optional<config::TableSource>& source)
     {
+        if (source)
+            source->path = ResolveRelativePath(configFilePath, source->path);
+    }
+
+    void ResolveEphysTracesSourcePath(const QString& configFilePath, std::optional<config::EphysTracesSource>& source)
+    {
         if (!source)
             return;
 
-        source->path = ResolveRelativePath(configFilePath, source->path);
+        source->directory = ResolveRelativePath(configFilePath, source->directory);
+        source->failedSweepsPath = ResolveRelativePath(configFilePath, source->failedSweepsPath);
+    }
+
+    void ResolveMorphologyReconstructionsSourcePath(const QString& configFilePath, std::optional<config::MorphologyReconstructionsSource>& source)
+    {
+        if (source)
+            source->directory = ResolveRelativePath(configFilePath, source->directory);
     }
 }
 
@@ -286,7 +296,6 @@ namespace config
 {
     bool File::Load(QString filePath)
     {
-        // Reset existing state so reusing the same config::File object is safe.
         format.clear();
         version.clear();
         datasetId.clear();
@@ -295,13 +304,12 @@ namespace config
         ephys.reset();
         morphology.reset();
         metadata.reset();
-
-        assetDirectories = config::AssetDirectories{};
+        ephysTraces.reset();
+        morphologyReconstructions.reset();
 
         rnaUmap.reset();
         ephysUmap.reset();
         morphoUmap.reset();
-
         extraEmbeddings.clear();
 
         QFile file(filePath);
@@ -318,10 +326,8 @@ namespace config
             return false;
         }
 
-        const QByteArray bytes = file.readAll();
-
         QJsonParseError parseError;
-        const QJsonDocument document = QJsonDocument::fromJson(bytes, &parseError);
+        const QJsonDocument document = QJsonDocument::fromJson(file.readAll(), &parseError);
 
         if (parseError.error != QJsonParseError::NoError)
         {
@@ -361,22 +367,22 @@ namespace config
             return false;
         }
 
-        if (HasObject(root, config::keys::Sources))
-        {
-            const QJsonObject sources = root.value(config::keys::Sources).toObject();
-
-            WarnUnknownSourceKeys(sources);
-
-            rna = ReadTableSource(sources, config::keys::sources::Rna);
-            ephys = ReadTableSource(sources, config::keys::sources::Ephys);
-            morphology = ReadTableSource(sources, config::keys::sources::Morphology);
-            metadata = ReadTableSource(sources, config::keys::sources::Metadata);
-        }
-        else
+        if (!HasObject(root, config::keys::Sources))
         {
             qWarning() << "Config has no sources object.";
             return false;
         }
+
+        const QJsonObject sources = root.value(config::keys::Sources).toObject();
+
+        WarnUnknownSourceKeys(sources);
+
+        rna = ReadTableSource(sources, config::keys::sources::Rna, config::keys::Sources);
+        ephys = ReadTableSource(sources, config::keys::sources::Ephys, config::keys::Sources);
+        morphology = ReadTableSource(sources, config::keys::sources::Morphology, config::keys::Sources);
+        metadata = ReadTableSource(sources, config::keys::sources::Metadata, config::keys::Sources);
+        ephysTraces = ReadEphysTracesSource(sources, config::keys::sources::EphysTraces);
+        morphologyReconstructions = ReadMorphologyReconstructionsSource(sources, config::keys::sources::MorphologyReconstructions);
 
         if (!metadata)
         {
@@ -384,19 +390,13 @@ namespace config
             return false;
         }
 
-        assetDirectories = ReadAssetDirectories(root);
-
         if (HasObject(root, config::keys::Embeddings))
         {
             const QJsonObject embeddings = root.value(config::keys::Embeddings).toObject();
 
-            rnaUmap = ReadTableSource(embeddings, config::keys::embeddings::RnaUmap);
-            ephysUmap = ReadTableSource(embeddings, config::keys::embeddings::EphysUmap);
-            morphoUmap = ReadTableSource(embeddings, config::keys::embeddings::MorphoUmap);
-
-            //rnaUmap = ReadEmbedding(embeddings, config::keys::embeddings::RnaUmap);
-            //ephysUmap = ReadEmbedding(embeddings, config::keys::embeddings::EphysUmap);
-            //morphoUmap = ReadEmbedding(embeddings, config::keys::embeddings::MorphoUmap);
+            rnaUmap = ReadTableSource(embeddings, config::keys::embeddings::RnaUmap, config::keys::Embeddings);
+            ephysUmap = ReadTableSource(embeddings, config::keys::embeddings::EphysUmap, config::keys::Embeddings);
+            morphoUmap = ReadTableSource(embeddings, config::keys::embeddings::MorphoUmap, config::keys::Embeddings);
 
             const QSet<QString> reservedEmbeddingNames = {
                 config::keys::embeddings::RnaUmap,
@@ -420,18 +420,19 @@ namespace config
                 QJsonObject temp;
                 temp.insert(key, it.value());
 
-                const std::optional<config::TableSource> embedding = ReadTableSource(temp, key);
+                const std::optional<config::TableSource> embedding = ReadTableSource(temp, key, config::keys::Embeddings);
 
                 if (embedding)
                     extraEmbeddings.insert(key, *embedding);
             }
         }
-        
-        // Resolve relative paths against the config file location.
+
         ResolveTableSourcePath(filePath, rna);
         ResolveTableSourcePath(filePath, ephys);
         ResolveTableSourcePath(filePath, morphology);
         ResolveTableSourcePath(filePath, metadata);
+        ResolveEphysTracesSourcePath(filePath, ephysTraces);
+        ResolveMorphologyReconstructionsSourcePath(filePath, morphologyReconstructions);
 
         ResolveTableSourcePath(filePath, rnaUmap);
         ResolveTableSourcePath(filePath, ephysUmap);
@@ -439,12 +440,6 @@ namespace config
 
         for (auto it = extraEmbeddings.begin(); it != extraEmbeddings.end(); ++it)
             it->path = ResolveRelativePath(filePath, it->path);
-
-        assetDirectories.morphologyReconstruction =
-            ResolveRelativePath(filePath, assetDirectories.morphologyReconstruction);
-
-        assetDirectories.ephysTraces =
-            ResolveRelativePath(filePath, assetDirectories.ephysTraces);
 
         return true;
     }

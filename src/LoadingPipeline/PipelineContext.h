@@ -10,6 +10,10 @@
 
 #include <PointData/PointData.h>
 #include <TextData/TextData.h>
+
+#include <EphysData/EphysData.h>
+#include <CellMorphologyData/CellMorphologyData.h>
+
 #include <SelectionGroup.h>
 
 #include <QString>
@@ -84,6 +88,9 @@ struct PipelineContext
     QMap<QString, mv::Dataset<Points>> embeddingDatasets;
     mv::Dataset<EphysExperiments> ephysTraces;
     mv::Dataset<CellMorphologies> cellMorphologies;
+
+    std::vector<QString> ephysTraceCellIds;
+    std::vector<QString> morphologyCellIds;
 
     KeyBasedSelectionGroup selectionGroup;
 

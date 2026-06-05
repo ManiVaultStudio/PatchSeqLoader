@@ -3,6 +3,7 @@
 #include "Config/ConfigSchema.h"
 
 #include <QString>
+#include <QStringList>
 #include <QMap>
 #include <optional>
 
@@ -24,19 +25,19 @@ namespace config
         QStringList obsColumns;
     };
 
-    //struct Embedding
-    //{
-    //    QString path;
-    //    QString displayName;
-    //    QString index;
-    //    QString xColumn;
-    //    QString yColumn;
-    //};
-
-    struct AssetDirectories
+    struct EphysTracesSource
     {
-        QString morphologyReconstruction;
-        QString ephysTraces;
+        QString directory;
+        QString failedSweepsPath;
+        QString displayName;
+        QString filenameMetadataColumn;
+    };
+
+    struct MorphologyReconstructionsSource
+    {
+        QString directory;
+        QString displayName;
+        QString filenameMetadataColumn;
     };
 
     struct File
@@ -54,7 +55,8 @@ namespace config
         std::optional<config::TableSource> morphology;
         std::optional<config::TableSource> metadata;
 
-        config::AssetDirectories assetDirectories;
+        std::optional<config::EphysTracesSource> ephysTraces;
+        std::optional<config::MorphologyReconstructionsSource> morphologyReconstructions;
 
         std::optional<config::TableSource> rnaUmap;
         std::optional<config::TableSource> ephysUmap;

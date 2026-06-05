@@ -22,25 +22,23 @@ public:
         int discoveredDirectoryCount = 0;
         int missingDirectoryCount = 0;
 
-        CheckTableSource(ctx, "rna", ctx.config.rna, discoveredFileCount, missingFileCount);
-        CheckTableSource(ctx, "ephys", ctx.config.ephys, discoveredFileCount, missingFileCount);
-        CheckTableSource(ctx, "morphology", ctx.config.morphology, discoveredFileCount, missingFileCount);
-        CheckTableSource(ctx, "metadata", ctx.config.metadata, discoveredFileCount, missingFileCount);
+        CheckTableSource(ctx, config::keys::sources::Rna, ctx.config.rna, discoveredFileCount, missingFileCount);
+        CheckTableSource(ctx, config::keys::sources::Ephys, ctx.config.ephys, discoveredFileCount, missingFileCount);
+        CheckTableSource(ctx, config::keys::sources::Morphology, ctx.config.morphology, discoveredFileCount, missingFileCount);
+        CheckTableSource(ctx, config::keys::sources::Metadata, ctx.config.metadata, discoveredFileCount, missingFileCount);
 
-        CheckTableSource(ctx, "rna_umap", ctx.config.rnaUmap, discoveredFileCount, missingFileCount);
-        CheckTableSource(ctx, "ephys_umap", ctx.config.ephysUmap, discoveredFileCount, missingFileCount);
-        CheckTableSource(ctx, "morpho_umap", ctx.config.morphoUmap, discoveredFileCount, missingFileCount);
+        CheckTableSource(ctx, config::keys::embeddings::RnaUmap, ctx.config.rnaUmap, discoveredFileCount, missingFileCount, config::keys::Embeddings);
+        CheckTableSource(ctx, config::keys::embeddings::EphysUmap, ctx.config.ephysUmap, discoveredFileCount, missingFileCount, config::keys::Embeddings);
+        CheckTableSource(ctx, config::keys::embeddings::MorphoUmap, ctx.config.morphoUmap, discoveredFileCount, missingFileCount, config::keys::Embeddings);
 
         for (auto it = ctx.config.extraEmbeddings.begin(); it != ctx.config.extraEmbeddings.end(); ++it)
-        {
-            CheckTableSource(ctx, it.key(), it.value(), discoveredFileCount, missingFileCount);
-        }
+            CheckTableSource(ctx, it.key(), it.value(), discoveredFileCount, missingFileCount, config::keys::Embeddings);
 
-        CheckDirectory(ctx, "assets.directories.morphology_reconstruction", ctx.config.assetDirectories.morphologyReconstruction, discoveredDirectoryCount, missingDirectoryCount);
-        CheckDirectory(ctx, "assets.directories.ephys_traces", ctx.config.assetDirectories.ephysTraces, discoveredDirectoryCount, missingDirectoryCount);
+        CheckEphysTracesSource(ctx, ctx.config.ephysTraces, discoveredFileCount, missingFileCount, discoveredDirectoryCount, missingDirectoryCount);
+        CheckMorphologyReconstructionsSource(ctx, ctx.config.morphologyReconstructions, discoveredDirectoryCount, missingDirectoryCount);
 
         if (discoveredFileCount == 0 && discoveredDirectoryCount == 0)
-            ctx.result.Warning(Name(), "No configured source files or asset directories were found.", "The config loaded successfully, but there may be nothing to load.");
+            ctx.result.Warning(Name(), "No configured source files or directories were found.", "The config loaded successfully, but there may be nothing to load.");
 
         ctx.result.Info(Name(), "Source discovery complete.", QString("files found=%1, files missing=%2, directories found=%3, directories missing=%4")
             .arg(discoveredFileCount)
@@ -53,15 +51,49 @@ public:
     }
 
 private:
-    void CheckTableSource(PipelineContext& ctx, const QString& label, const std::optional<config::TableSource>& source, int& foundCount, int& missingCount) const
+    void CheckTableSource(PipelineContext& ctx, const QString& label, const std::optional<config::TableSource>& source, int& foundCount, int& missingCount, const QString& parentPath = config::keys::Sources) const
     {
         if (!source)
         {
-            ctx.result.Info(Name(), "Optional table source is not configured.", label);
+            ctx.result.Info(Name(), "Optional table source is not configured.", QString("%1.%2").arg(parentPath, label));
             return;
         }
 
-        CheckFile(ctx, QString("sources.%1.path").arg(label), source->path, foundCount, missingCount);
+        CheckFile(ctx, QString("%1.%2.%3").arg(parentPath, label, config::keys::Path), source->path, foundCount, missingCount);
+    }
+
+    void CheckTableSource(PipelineContext& ctx, const QString& label, const config::TableSource& source, int& foundCount, int& missingCount, const QString& parentPath = config::keys::Sources) const
+    {
+        CheckFile(ctx, QString("%1.%2.%3").arg(parentPath, label, config::keys::Path), source.path, foundCount, missingCount);
+    }
+
+    void CheckEphysTracesSource(PipelineContext& ctx, const std::optional<config::EphysTracesSource>& source, int& foundFileCount, int& missingFileCount, int& foundDirectoryCount, int& missingDirectoryCount) const
+    {
+        const QString sourcePath = QString("%1.%2").arg(config::keys::Sources, config::keys::sources::EphysTraces);
+
+        if (!source)
+        {
+            ctx.result.Info(Name(), "Optional directory-backed source is not configured.", sourcePath);
+            return;
+        }
+
+        CheckDirectory(ctx, QString("%1.%2").arg(sourcePath, config::keys::Directory), source->directory, foundDirectoryCount, missingDirectoryCount);
+
+        if (!source->failedSweepsPath.isEmpty())
+            CheckFile(ctx, QString("%1.%2").arg(sourcePath, config::keys::FailedSweepsPath), source->failedSweepsPath, foundFileCount, missingFileCount);
+    }
+
+    void CheckMorphologyReconstructionsSource(PipelineContext& ctx, const std::optional<config::MorphologyReconstructionsSource>& source, int& foundDirectoryCount, int& missingDirectoryCount) const
+    {
+        const QString sourcePath = QString("%1.%2").arg(config::keys::Sources, config::keys::sources::MorphologyReconstructions);
+
+        if (!source)
+        {
+            ctx.result.Info(Name(), "Optional directory-backed source is not configured.", sourcePath);
+            return;
+        }
+
+        CheckDirectory(ctx, QString("%1.%2").arg(sourcePath, config::keys::Directory), source->directory, foundDirectoryCount, missingDirectoryCount);
     }
 
     void CheckFile(PipelineContext& ctx, const QString& configPath, const QString& filePath, int& foundCount, int& missingCount) const
@@ -97,7 +129,6 @@ private:
         }
 
         ctx.result.Info(Name(), "Discovered file.", QString("%1 = %2").arg(configPath, filePath));
-
         ++foundCount;
     }
 
@@ -105,7 +136,8 @@ private:
     {
         if (directoryPath.isEmpty())
         {
-            ctx.result.Info(Name(), "Optional asset directory is not configured.", configPath);
+            ctx.result.Warning(Name(), "Configured directory path is empty.", configPath);
+            ++missingCount;
             return;
         }
 
@@ -133,7 +165,6 @@ private:
         }
 
         ctx.result.Info(Name(), "Discovered directory.", QString("%1 = %2").arg(configPath, directoryPath));
-
         ++foundCount;
     }
 };

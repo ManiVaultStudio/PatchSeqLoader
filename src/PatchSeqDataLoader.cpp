@@ -7,6 +7,7 @@
 #include "LoadingPipeline/Stages/LoadTablesStage.h"
 #include "LoadingPipeline/Stages/NormalizeTablesStage.h"
 #include "LoadingPipeline/Stages/CollectMetadataStage.h"
+#include "LoadingPipeline/Stages/LoadAssetsStage.h"
 #include "LoadingPipeline/Stages/CreateDatasetsStage.h"
 #include "LoadingPipeline/Stages/LinkDatasetsStage.h"
 
