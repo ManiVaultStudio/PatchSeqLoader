@@ -1,12 +1,7 @@
-// PipelineContext.hpp
 #pragma once
 
 #include "Config/Config.h"
 #include "AnnotatedData.h"
-
-//#include "PatchSeqConfig.hpp"
-//#include "PatchSeqCellRecord.hpp"
-//#include "PatchSeqLoadedData.hpp"
 
 #include <PointData/PointData.h>
 #include <TextData/TextData.h>
@@ -15,6 +10,8 @@
 #include <CellMorphologyData/CellMorphologyData.h>
 
 #include <SelectionGroup.h>
+
+#include <ModalTask.h>
 
 #include <QString>
 #include <QMap>
@@ -72,7 +69,6 @@ struct PipelineContext
     QString datasetRoot;
 
     config::File config;
-    //PatchSeqConfig config;
 
     // Raw input tables, keyed by source name:
     // "metadata", "ephys", "morphology", "rna", etc.
@@ -81,30 +77,29 @@ struct PipelineContext
     // Cleaned, normalized tables.
     QMap<QString, AnnotatedData> normalizedTables;
 
+    // Aggregated metadata table
     AnnotatedData metadata;
 
+    // Feature / UMAP and metadata datasets
     QMap<QString, mv::Dataset<Points>> featureDatasets;
-    QMap<QString, mv::Dataset<Text>> textDatasets;
     QMap<QString, mv::Dataset<Points>> embeddingDatasets;
+    QMap<QString, mv::Dataset<Text>> textDatasets;
+
+    // Auxiliary assets and corresponding ids
     mv::Dataset<EphysExperiments> ephysTraces;
     mv::Dataset<CellMorphologies> cellMorphologies;
 
     std::vector<QString> ephysTraceCellIds;
     std::vector<QString> morphologyCellIds;
 
-    KeyBasedSelectionGroup selectionGroup;
-
+    // Metadata color mappings
     QHash<QString, QHash<QString, QColor>> metadataColorMaps;
 
-    //// Optional loaded assets.
-    //QVector<CellMorphology> morphologyCells;
-    //QVector<EphysExperiment> ephysExperiments;
-
-    //// Manivault/viewer datasets created near the end.
-    //PatchSeqLoadedData loaded;
+    // Linked selection group
+    KeyBasedSelectionGroup selectionGroup;
 
     PipelineResult result;
 
-    // Optional task/progress bridge.
-    mv::Task* task = nullptr;
+    // Task/progress bridge.
+    mv::ModalTask* task = nullptr;
 };
