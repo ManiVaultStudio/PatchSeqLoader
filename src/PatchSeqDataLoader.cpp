@@ -565,6 +565,7 @@ void PatchSeqDataLoader::loadData()
     PipelineContext ctx;
     ctx.configPath = configPath;
     ctx.task = &_task;
+    ctx.task->setRunning();
 
     const auto result = pipeline.Run(ctx);
     qDebug() << "End of pipeline";

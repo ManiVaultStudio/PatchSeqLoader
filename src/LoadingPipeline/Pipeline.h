@@ -14,33 +14,43 @@ public:
         _stages.push_back(std::move(stage));
     }
 
+    QStringList GetStageNames()
+    {
+        QStringList stageNames;
+        for (size_t i = 0; i < _stages.size(); i++)
+            stageNames.push_back(_stages[i]->Name());
+        return stageNames;
+    }
+
     PipelineResult Run(PipelineContext& ctx)
     {
-        const int total = static_cast<int>(_stages.size());
+        if (!ctx.task)
+        {
+            ctx.result.Error("Pipeline", "Pipeline task not initialized, aborting...");
+            return ctx.result;
+        }
 
-        for (int i = 0; i < total; ++i) {
+        ctx.task->setSubtasks(GetStageNames());
+
+        for (size_t i = 0; i < _stages.size(); ++i)
+        {
             auto& stage = _stages[i];
 
-            if (ctx.task) {
-                ctx.task->setProgress(static_cast<float>(i) / total);
-                ctx.task->setDescription("Running " + stage->Name());
-            }
+            ctx.task->setSubtaskStarted(stage->Name(), "Running " + stage->Name()); QApplication::processEvents();
 
             const bool success = stage->Run(ctx);
 
             if (!success) {
-                ctx.result.Error(
-                    stage->Name(),
-                    "Pipeline stopped at stage: " + stage->Name()
-                );
+                ctx.result.Error(stage->Name(), "Pipeline stopped at stage: " + stage->Name());
                 return ctx.result;
             }
+
+            ctx.task->setSubtaskFinished(stage->Name(), "Finished " + stage->Name()); QApplication::processEvents();
         }
 
-        if (ctx.task) {
-            ctx.task->setProgress(1.0f);
-            ctx.task->setDescription("Patch-seq load complete");
-        }
+        ctx.task->setFinished();
+        ctx.task->setDescription("Patch-seq load complete");
+        QApplication::processEvents();
 
         return ctx.result;
     }
