@@ -1,53 +1,19 @@
 #pragma once
 
-#include <vector>
-#include <unordered_map>
-#include <string>
-
-class TaxonomyAttributes
+struct Taxonomy
 {
-public:
+    QString key;
+    QString displayName;
 
-public:
-    std::unordered_map<std::string, std::string> _map;
-};
+    // Non-color taxonomy columns, e.g. Group, Subclass, Class, Neighborhood.
+    QStringList levels;
 
-class TaxonomyNode
-{
-public:
-    TaxonomyNode() :
-        _name("")
-    {
+    // level -> label -> color
+    QHash<QString, QHash<QString, QColor>> colorMaps;
 
-    }
-
-    TaxonomyNode(std::string name) :
-        _name(name)
-    {
-
-    }
-
-public:
-    std::string _name;
-
-    std::vector<TaxonomyNode> _children;
-
-    int attributeIndex = -1;
-
-    bool isLeaf = false;
-};
-
-class Taxonomy
-{
-public:
-    static Taxonomy fromJsonFile();
-
-    void printTree();
-
-    TaxonomyAttributes* findLeafWithAttribute(std::string attributeName, std::string attributeValue);
-
-    std::vector<TaxonomyNode> _nodes;
-
-    std::vector<TaxonomyAttributes> _nodeAttributes;
-    std::vector<TaxonomyAttributes> _leafAttributes;
+    // leaf level -> leaf label -> level -> label
+    //
+    // In practice, use the first non-color column as the leaf/key column.
+    // For your file: Group -> "Astrocyte" -> { Group, Subclass, Class, Neighborhood }
+    QHash<QString, QHash<QString, QString>> labelsByLeaf;
 };

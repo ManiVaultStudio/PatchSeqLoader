@@ -233,6 +233,39 @@ namespace
         return source;
     }
 
+    std::optional<config::TaxonomySource> ReadTaxonomySource(const QJsonObject& taxonomies, const QString& key)
+    {
+        const QString sourcePath = QString("%1.%2").arg(config::keys::Taxonomies, key);
+
+        if (!taxonomies.contains(key))
+            return std::nullopt;
+
+        if (!taxonomies.value(key).isObject())
+        {
+            qWarning() << "Config taxonomy" << sourcePath << "exists but is not an object.";
+            return std::nullopt;
+        }
+
+        const QJsonObject object = taxonomies.value(key).toObject();
+
+        config::TaxonomySource source;
+        source.path = ReadString(object, config::keys::Path);
+        source.displayName = ReadString(object, config::keys::DisplayName, key);
+
+        if (source.path.isEmpty())
+        {
+            qWarning() << "Config taxonomy" << sourcePath << "has no path. Expected field:" << QString("%1.%2").arg(sourcePath, config::keys::Path);
+            return std::nullopt;
+        }
+
+        if (source.displayName.isEmpty())
+            source.displayName = key;
+
+        qInfo() << "Loaded config taxonomy" << sourcePath << "from" << source.path;
+
+        return source;
+    }
+
     void ValidateKnownFormat(const QString& format)
     {
         if (format != config::keys::values::CytosplorePatchSeqConfig)
@@ -290,6 +323,12 @@ namespace
         if (source)
             source->directory = ResolveRelativePath(configFilePath, source->directory);
     }
+
+    void ResolveTaxonomySourcePaths(const QString& configFilePath, QMap<QString, config::TaxonomySource>& taxonomies)
+    {
+        for (auto it = taxonomies.begin(); it != taxonomies.end(); ++it)
+            it->path = ResolveRelativePath(configFilePath, it->path);
+    }
 }
 
 namespace config
@@ -311,6 +350,7 @@ namespace config
         ephysUmap.reset();
         morphoUmap.reset();
         extraEmbeddings.clear();
+        taxonomies.clear();
 
         QFile file(filePath);
 
@@ -427,6 +467,22 @@ namespace config
             }
         }
 
+        if (HasObject(root, config::keys::Taxonomies))
+        {
+            const QJsonObject taxonomiesObject = root.value(config::keys::Taxonomies).toObject();
+
+            for (auto it = taxonomiesObject.begin(); it != taxonomiesObject.end(); ++it)
+            {
+                const QString key = it.key();
+
+                const std::optional<config::TaxonomySource> taxonomy =
+                    ReadTaxonomySource(taxonomiesObject, key);
+
+                if (taxonomy)
+                    taxonomies.insert(key, *taxonomy);
+            }
+        }
+
         ResolveTableSourcePath(filePath, rna);
         ResolveTableSourcePath(filePath, ephys);
         ResolveTableSourcePath(filePath, morphology);
@@ -440,6 +496,8 @@ namespace config
 
         for (auto it = extraEmbeddings.begin(); it != extraEmbeddings.end(); ++it)
             it->path = ResolveRelativePath(filePath, it->path);
+
+        ResolveTaxonomySourcePaths(filePath, taxonomies);
 
         return true;
     }

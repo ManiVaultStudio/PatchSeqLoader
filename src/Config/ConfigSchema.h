@@ -11,6 +11,7 @@ namespace config::keys
 
     inline const QString Sources = "sources";
     inline const QString Embeddings = "embeddings";
+    inline const QString Taxonomies = "taxonomies";
 
     // Common object fields
     inline const QString Path = "path";

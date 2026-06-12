@@ -40,6 +40,12 @@ namespace config
         QString filenameMetadataColumn;
     };
 
+    struct TaxonomySource
+    {
+        QString path;
+        QString displayName;
+    };
+
     struct File
     {
     public:
@@ -63,6 +69,8 @@ namespace config
         std::optional<config::TableSource> morphoUmap;
 
         QMap<QString, config::TableSource> extraEmbeddings;
+
+        QMap<QString, TaxonomySource> taxonomies;
     };
 
 } // namespace config

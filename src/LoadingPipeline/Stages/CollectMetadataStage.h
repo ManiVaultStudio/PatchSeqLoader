@@ -5,8 +5,11 @@
 
 #include "AnnotatedDataExporter.h"
 
+#include <QSet>
+
 #include <algorithm>
 #include <stdexcept>
+#include <array>
 
 namespace
 {
@@ -105,6 +108,7 @@ public:
         ctx.metadataColorMaps.clear();
         ExtractColorMaps(combined.obs, ctx.metadataColorMaps);
         RemoveColorColumns(combined.obs);
+        AssignDefaultBinaryMetadataColors(combined.obs, ctx.metadataColorMaps);
 
         combined.X.rowCount = combined.obs.index.size();
         combined.X.columnCount = 0;
@@ -416,6 +420,179 @@ private:
             }
 
             qDebug() << "Extracted" << colorMap.size() << "colors for metadata column" << baseColumnName;
+        }
+    }
+
+    enum class BooleanLikeValue
+    {
+        NotBooleanLike,
+        FalseLike,
+        TrueLike
+    };
+
+    static QString NormalizeBooleanLikeText(const QString& text)
+    {
+        QString normalized = text.trimmed().toLower();
+        normalized.remove(' ');
+        normalized.remove('_');
+        normalized.remove('-');
+        return normalized;
+    }
+
+    static BooleanLikeValue ClassifyBooleanLikeValue(const QString& text)
+    {
+        const QString normalized = NormalizeBooleanLikeText(text);
+
+        if (normalized.isEmpty())
+            return BooleanLikeValue::NotBooleanLike;
+
+        static const QSet<QString> trueLikeValues = {
+            "true",
+            "t",
+            "1",
+            "yes",
+            "y",
+            "on",
+            "present",
+            "positive",
+            "pos",
+            "enabled",
+            "enable",
+            "included",
+            "include",
+            "valid",
+            "pass",
+            "passed"
+        };
+
+        static const QSet<QString> falseLikeValues = {
+            "false",
+            "f",
+            "0",
+            "no",
+            "n",
+            "off",
+            "absent",
+            "negative",
+            "neg",
+            "disabled",
+            "disable",
+            "excluded",
+            "exclude",
+            "invalid",
+            "fail",
+            "failed"
+        };
+
+        if (trueLikeValues.contains(normalized))
+            return BooleanLikeValue::TrueLike;
+
+        if (falseLikeValues.contains(normalized))
+            return BooleanLikeValue::FalseLike;
+
+        return BooleanLikeValue::NotBooleanLike;
+    }
+
+    static bool TryAssignBooleanSemanticColors(
+        const QString& columnName,
+        const QStringList& labels,
+        QHash<QString, QColor>& colorMap)
+    {
+        if (labels.size() != 2)
+            return false;
+
+        const BooleanLikeValue first = ClassifyBooleanLikeValue(labels[0]);
+        const BooleanLikeValue second = ClassifyBooleanLikeValue(labels[1]);
+
+        const bool isBooleanPair =
+            (first == BooleanLikeValue::TrueLike && second == BooleanLikeValue::FalseLike) ||
+            (first == BooleanLikeValue::FalseLike && second == BooleanLikeValue::TrueLike);
+
+        if (!isBooleanPair)
+            return false;
+
+        constexpr const char* trueColor = "#1984A3";
+        constexpr const char* falseColor = "#F5C767";
+
+        for (const QString& label : labels)
+        {
+            const BooleanLikeValue classification = ClassifyBooleanLikeValue(label);
+
+            if (classification == BooleanLikeValue::TrueLike)
+                colorMap.insert(label, QColor(trueColor));
+            else if (classification == BooleanLikeValue::FalseLike)
+                colorMap.insert(label, QColor(falseColor));
+        }
+
+        qDebug() << "Assigned boolean-semantic metadata colors for column" << columnName
+            << ": true-like ->" << trueColor
+            << ", false-like ->" << falseColor;
+
+        return true;
+    }
+
+    static void AssignDefaultBinaryMetadataColors(
+        const AnnotationTable& obs,
+        QHash<QString, QHash<QString, QColor>>& colorMaps)
+    {
+        constexpr const char* defaultFirstColor = "#1984A3";
+        constexpr const char* defaultSecondColor = "#F5C767";
+
+        const std::array<QColor, 2> binaryColors = {
+            QColor(defaultFirstColor),
+            QColor(defaultSecondColor)
+        };
+
+        for (size_t col = 0; col < obs.columnNames.size(); ++col)
+        {
+            const QString& columnName = obs.columnNames[col];
+
+            if (IsColorColumn(columnName))
+                continue;
+
+            if (col >= obs.values.size())
+                continue;
+
+            const std::vector<QString>& values = obs.values[col];
+
+            QStringList labels;
+            QSet<QString> seen;
+
+            for (const QString& value : values)
+            {
+                const QString label = value.trimmed();
+
+                if (label.isEmpty() || seen.contains(label))
+                    continue;
+
+                labels.push_back(label);
+                seen.insert(label);
+
+                if (labels.size() > 2)
+                    break;
+            }
+
+            if (labels.size() != 2)
+                continue;
+
+            QHash<QString, QColor>& colorMap = colorMaps[columnName];
+
+            if (TryAssignBooleanSemanticColors(columnName, labels, colorMap))
+                continue;
+
+            for (int i = 0; i < labels.size(); ++i)
+            {
+                const QString& label = labels[i];
+
+                if (colorMap.contains(label))
+                    continue;
+
+                colorMap.insert(label, binaryColors[static_cast<size_t>(i)]);
+            }
+
+            qDebug() << "Assigned default binary metadata colors for column" << columnName
+                << ":" << labels[0] << binaryColors[0].name()
+                << "," << labels[1] << binaryColors[1].name();
         }
     }
 

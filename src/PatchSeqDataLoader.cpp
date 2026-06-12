@@ -7,6 +7,7 @@
 #include "LoadingPipeline/Stages/LoadTablesStage.h"
 #include "LoadingPipeline/Stages/NormalizeTablesStage.h"
 #include "LoadingPipeline/Stages/CollectMetadataStage.h"
+#include "LoadingPipeline/Stages/LoadTaxonomiesStage.h"
 #include "LoadingPipeline/Stages/LoadAssetsStage.h"
 #include "LoadingPipeline/Stages/CreateDatasetsStage.h"
 #include "LoadingPipeline/Stages/LinkDatasetsStage.h"
@@ -558,7 +559,8 @@ void PatchSeqDataLoader::loadData()
     pipeline.Add(std::make_unique<LoadTablesStage>());
     pipeline.Add(std::make_unique<NormalizeTablesStage>());
     pipeline.Add(std::make_unique<CollectMetadataStage>());
-    pipeline.Add(std::make_unique<LoadAssetsStage>());
+    pipeline.Add(std::make_unique<LoadTaxonomiesStage>());
+    //pipeline.Add(std::make_unique<LoadAssetsStage>());
     pipeline.Add(std::make_unique<CreateDatasetsStage>());
     pipeline.Add(std::make_unique<LinkDatasetsStage>());
 
