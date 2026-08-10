@@ -435,14 +435,7 @@ void NWBLoader::LoadNWB(QString filePath, Experiment& experiment, LoadInfo& info
         else
             continue;
 
-        sweep.stimulus.GetRecording().GetData().computeExtents();
-        sweep.stimulus.CalculateStimulusAmplitude();
-        sweep.stimulus.DetectStimulusType();
-        sweep.acquisition.GetData().computeExtents();
-
-        // Detect spikes
-        std::vector<int> spikeIndices = DetectSpikes(sweep.acquisition.GetData());
-        sweep.acquisition.AddAttribute("NumSpikes", QString::number(static_cast<qulonglong>(spikeIndices.size())));
+        sweep.AnalyzeSweep();
 
         experiment.AddSweep(std::move(sweep));
     }
