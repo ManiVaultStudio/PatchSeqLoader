@@ -1,3 +1,5 @@
+#define NOMINMAX
+
 #include "NWBLoader.h"
 
 #include "StimulusCodeMap.h"
@@ -10,6 +12,7 @@
 #include <string>
 #include <fstream>
 #include <regex>
+#include <limits>
 
 #include "LEAD/NWBFile.h"
 #include "Electrophysiology/SpikeExtractor.h"
@@ -189,7 +192,7 @@ namespace
                 rate = QString::fromStdString(attr.GetValue()).toFloat();
         }
 
-        float timeStep = (1 / rate);
+        float timeStep = (1.0f / rate);
         std::transform(recording.GetData().xSeries.begin(), recording.GetData().xSeries.end(), recording.GetData().xSeries.begin(), [timeStep](auto& c) { return c * timeStep; });
         //recording.GetData().downsample();
 
@@ -244,29 +247,37 @@ namespace
 void NWBLoader::LoadNWB(QString filePath, Experiment& experiment, LoadInfo& info)
 {
     NWBFile nwbFile;
+
+    // Open and load file hierarchy as groups and datasets, then close it again
     nwbFile.Load(filePath.toStdString());
     Groups groups = nwbFile.GetGroups();
 
+    // Reopen file
     nwbFile.Open(filePath.toStdString());
-    bool written = false;
 
     float totalSize = 0;
     qDebug() << "Filepath: " << filePath;
 
+    // Get name of the file (e.g. QN24.26.017.15.06A.06)
     QString fileName = ExtractFileId(filePath);
+    experiment.SetName(fileName.toStdString());
 
+    // Load list of sweeps marked as failed (FIXME: Probably should be optional)
     QHash<QString, QVector<int>> failedSweepDict = LoadFailedSweeps(info.failedSweepPath);
 
+    // Get indices of failed sweeps for this file
     QVector<int> failedSweeps;
     if (failedSweepDict.contains(fileName))
         failedSweeps = failedSweepDict[fileName];
 
+    // Extract and store stimulus and acquisition as a recording pair
     QHash<QString, RecordingPair> recordingPairs;
     ExtractRecordings(groups, recordingPairs);
 
+    // For every recording pair, load and process all the data
     for (RecordingPair& recordingPair : recordingPairs)
     {
-        // Find stimulus description
+        // Find stimulus description (e.g. X4PS_SupraThresh_DA_1)
         QString stimDescription;
         bool stimDescriptionFound = FindStimulusDescription(nwbFile, recordingPair.acquisition, stimDescription);
 
@@ -274,8 +285,9 @@ void NWBLoader::LoadNWB(QString filePath, Experiment& experiment, LoadInfo& info
             continue;
 
         // There is a stimulus description, chop it, and determine if we should load the associated recordings
-        stimDescription.chop(5); // Trim _DA_0
+        stimDescription.chop(5); // Trim e.g. _DA_0
 
+        // Check if stim description is part of ignored stimsets or not
         if (!USEFUL_STIM_CODES.contains(stimDescription))
         {
             //qWarning() << "Not loading recordings because stimulus description was: " << stimDescription; // TEMP
@@ -293,10 +305,7 @@ void NWBLoader::LoadNWB(QString filePath, Experiment& experiment, LoadInfo& info
                 info.loadedStimsets[stimDescription]++;
         }
 
-        //if (STIMULUS_CODE_NAME_MAP.contains(stimDescription))
-        //    stimDescription = STIMULUS_CODE_NAME_MAP[stimDescription];
-
-        // Extract sweep number
+        // Extract sweep number (e.g. data_00083 -> 83)
         int acqSweepNumber = extractSweepNumber(QString::fromStdString(recordingPair.acquisition.GetName()));
         int stimSweepNumber = extractSweepNumber(QString::fromStdString(recordingPair.stimulus.GetName()));
 
@@ -323,6 +332,7 @@ void NWBLoader::LoadNWB(QString filePath, Experiment& experiment, LoadInfo& info
 
         sweep.SetSweepNumber(stimSweepNumber);
         sweep.stimulus.SetStimulusDescription(stimDescription);
+        sweep.stimulus.DetectStimulusType();
 
         // Load associated timeseries
         // ACQUISITION
@@ -336,14 +346,14 @@ void NWBLoader::LoadNWB(QString filePath, Experiment& experiment, LoadInfo& info
             {
                 const LEAD::Attribute& attribute = recordingPair.acquisition.GetAttributes()[j];
 
-                sweep.acquisition.AddAttribute(QString::fromStdString(attribute.GetName()), QString::fromStdString(attribute.GetValue()));
+                sweep.acquisition.GetRecording().AddAttribute(QString::fromStdString(attribute.GetName()), QString::fromStdString(attribute.GetValue()));
             }
 
-            ReadTimeseries(nwbFile, recordingPair.acquisition.GetName(), sweep.acquisition);
+            ReadTimeseries(nwbFile, recordingPair.acquisition.GetName(), sweep.acquisition.GetRecording());
 
-            totalSize += ((sweep.acquisition.GetData().xSeries.size() + sweep.acquisition.GetData().ySeries.size()) * sizeof(float)) / 1000000.0f;
+            totalSize += ((sweep.acquisition.GetRecording().GetData().xSeries.size() + sweep.acquisition.GetRecording().GetData().ySeries.size()) * sizeof(float)) / 1000000.0f;
 
-            for (auto it = sweep.acquisition.GetAttributes().constBegin(); it != sweep.acquisition.GetAttributes().constEnd(); ++it)
+            for (auto it = sweep.acquisition.GetRecording().GetAttributes().constBegin(); it != sweep.acquisition.GetRecording().GetAttributes().constEnd(); ++it)
             {
                 totalSize += it.value().size() / 1000000.0f;
                 //qDebug() << "Attribute size: " << it.key() << " " << it.value().size();
@@ -364,27 +374,27 @@ void NWBLoader::LoadNWB(QString filePath, Experiment& experiment, LoadInfo& info
 
             ReadTimeseries(nwbFile, recordingPair.stimulus.GetName(), sweep.stimulus.GetRecording());
             
-            // Extract action potential before downsampling
-            if (stimDescription.contains("Rheo"))
-            {
-                SpikeExtractor extractor;
-                ActionPotential* actionPotential = extractor.DetectActionPotential(sweep.stimulus.GetRecording().GetData(), sweep.acquisition.GetData());
-                experiment.setActionPotential(actionPotential);
+            //// Extract action potential before downsampling
+            //if (stimDescription.contains("Rheo"))
+            //{
+            //    SpikeExtractor extractor;
+            //    ActionPotential* actionPotential = extractor.DetectActionPotential(sweep.stimulus.GetRecording().GetData(), sweep.acquisition.GetRecording().GetData());
+            //    experiment.setActionPotential(actionPotential);
 
-                for (const auto& attribute : recordingPair.stimulus.GetAttributes())
-                {
-                    if (attribute.GetName().find("comment") != std::string::npos)
-                    {
-                        int stimScale = ExtractStimScale(attribute.GetValue());
+            //    for (const auto& attribute : recordingPair.stimulus.GetAttributes())
+            //    {
+            //        if (attribute.GetName().find("comment") != std::string::npos)
+            //        {
+            //            int stimScale = ExtractStimScale(attribute.GetValue());
 
-                        if (true)
-                        //if (stimScale == 100)
-                        {
+            //            if (true)
+            //            //if (stimScale == 100)
+            //            {
 
-                        }
-                    }
-                }
-            }
+            //            }
+            //        }
+            //    }
+            //}
         }
 
         // Detect failed acquisitions
@@ -414,9 +424,9 @@ void NWBLoader::LoadNWB(QString filePath, Experiment& experiment, LoadInfo& info
         //    continue;
         //}
 
-        // Downsample the recording
-        sweep.acquisition.GetData().downsample();
-        sweep.stimulus.GetRecording().GetData().downsample();
+        //// Downsample the recording
+        //sweep.acquisition.GetRecording().GetData().Downsample();
+        //sweep.stimulus.GetRecording().GetData().Downsample();
 
         std::vector<Envelope> stimEnvelopes = ComputeStimulusEnvelopes(sweep.stimulus);
         if (stimEnvelopes.empty())
@@ -429,115 +439,115 @@ void NWBLoader::LoadNWB(QString filePath, Experiment& experiment, LoadInfo& info
         //std::pair<int, int> stimRange = sweep.stimulus.GetRecording().GetData().FindStimulusRange();
         if (stimRange.first != -1)
         {
-            sweep.stimulus.GetRecording().GetData().trim(stimRange.first, stimRange.second);
-            sweep.acquisition.GetData().trim(stimRange.first, stimRange.second);
+            constexpr float SWEEP_PADDING_SECONDS = 0.1f;
+
+            sweep.stimulus.GetRecording().GetData().Trim(stimRange.first, stimRange.second, SWEEP_PADDING_SECONDS);
+            sweep.acquisition.GetRecording().GetData().Trim(stimRange.first, stimRange.second, SWEEP_PADDING_SECONDS);
         }
         else
             continue;
 
-        sweep.AnalyzeSweep();
+        sweep.stimulus.CalculateStimulusAmplitude();
+
+        sweep.DetectSpikes();
+        if (experiment.GetName() == "QM24.26.011.14v.02A.04")
+        {
+            std::cout << "beep" << std::endl;
+            if (sweep.GetSweepProperties().spikeIndices.size() == 1)
+                sweep.DetectSpikes();
+        }
+        sweep.stimulus.GetRecording().GetData().ComputeExtents();
+        sweep.acquisition.GetRecording().GetData().ComputeExtents();
 
         experiment.AddSweep(std::move(sweep));
     }
 
-    //for (int i = 0; i < groups.size(); i++)
-    //{
-    //    QString groupName = QString::fromStdString(groups[i].GetName());
+    // Find Rheobase
+    double minRheobaseAmplitude = std::numeric_limits<double>::max();
+    int rheobaseIndex = -1;
+    for (int i = 0; i < experiment.GetSweeps().size(); i++)
+    {
+        const Sweep& sweep = experiment.GetSweeps()[i];
 
-    //    Recording recording;
+        // Only regard long square stimuli for computing rheobase
+        if (sweep.stimulus.GetStimulusType() != StimulusType::LongSquare)
+            continue;
 
-    //    // Load all acquisitions
-    //    if (groupName.startsWith("acquisition/") && groupName.contains("data"))
-    //    {
-    //        // Check stimulus description whether we should load the dataset
-    //        // Determine if the acquisition has a stimulus description, and if so load it
-    //        std::string stimulusDescriptionDatasetName = (groupName + "/stimulus_description").toStdString();
-    //        if (nwbFile.DatasetExists(stimulusDescriptionDatasetName))
-    //        {
-    //            std::vector<std::string> stimDescriptions;
-    //            nwbFile.OpenStringDataset(stimulusDescriptionDatasetName, stimDescriptions);
-    //            if (!stimDescriptions.empty())
-    //            {
-    //                QString stimDescription = QString::fromStdString(stimDescriptions[0]);
-    //                stimDescription.chop(5); // Trim _DA_0
+        // Find the sweep with the minimum stimulus amplitude required to produce a spike
+        const int spikeCount = sweep.GetSweepProperties().GetSpikeCount();
+        const double stimulusAmplitude = sweep.stimulus.GetStimulusAmplitude();
 
-    //                if (!USEFUL_STIM_CODES.contains(stimDescription))
-    //                {
-    //                    loadedDatasets.push_back(false);
-    //                    continue;
-    //                }
-    //                
-    //                loadedDatasets.push_back(true);
+        if (spikeCount > 0 && stimulusAmplitude < minRheobaseAmplitude)
+        {
+            rheobaseIndex = i;
+            minRheobaseAmplitude = stimulusAmplitude;
+        }
+    }
 
-    //                if (STIMULUS_CODE_NAME_MAP.contains(stimDescription))
-    //                    stimDescription = STIMULUS_CODE_NAME_MAP[stimDescription];
+    if (rheobaseIndex != -1)
+    {
+        const Sweep& rheobase = experiment.GetSweeps()[rheobaseIndex];
+        SpikeExtractor extractor;
 
-    //                recording.SetStimulusDescription(stimDescription);
-    //            }
-    //        }
+            // Temp code
+            if (experiment.GetName() == "QM24.26.011.14v.02A.04")
+            {
+            const auto& acqData = rheobase.acquisition.GetRecording().GetData();
+            const auto& spikeIndices = rheobase.GetSweepProperties().spikeIndices;
 
-    //        //std::cout << i << ": " << groups[i].GetName() << std::endl;
-    //        groups[i].LoadAllAttributes(nwbFile.GetFileId());
-    //        
-    //        // Load all attributes
-    //        for (int j = 0; j < groups[i].GetAttributes().size(); j++)
-    //        {
-    //            const LEAD::Attribute& attribute = groups[i].GetAttributes()[j];
+            // Print spike indices
+            std::cout << "Spike indices: ";
+            for (int index : spikeIndices)
+            {
+                std::cout << index << " ";
+            }
+            std::cout << std::endl;
 
-    //            recording.AddAttribute(QString::fromStdString(attribute.GetName()), QString::fromStdString(attribute.GetValue()));
-    //        }
+            // Save acquisition y-series to disk
+            {
+                std::ofstream file(
+                    experiment.GetName() + "_rheobase_acq_y.csv"
+                );
 
-    //        ReadTimeseries(nwbFile, groupName.toStdString(), recording);
+                if (file.is_open())
+                {
+                    file << "index,y\n";
 
-    //        totalSize += ((recording.GetData().xSeries.size() + recording.GetData().ySeries.size()) * sizeof(float)) / 1000000.0f;
+                    for (size_t i = 0; i < acqData.ySeries.size(); ++i)
+                    {
+                        file << acqData.xSeries[i] << "," << acqData.ySeries[i] << "\n";
+                    }
 
-    //        for (auto it = recording.GetAttributes().constBegin(); it != recording.GetAttributes().constEnd(); ++it)
-    //        {
-    //            totalSize += it.value().size() / 1000000.0f;
-    //            //qDebug() << "Attribute size: " << it.key() << " " << it.value().size();
-    //        }
+                    file.close();
 
-    //        experiment.addAcquisition(std::move(recording));
-    //    }
-    //    // Load all stimuli
-    //    if (groupName.startsWith("stimulus/presentation/") && groupName.contains("data"))
-    //    {
-    //        //std::cout << i << ": " << groups[i].GetName() << std::endl;
-    //        groups[i].LoadAllAttributes(nwbFile.GetFileId());
+                    std::cout
+                        << "Saved rheobase acquisition to "
+                        << experiment.GetName()
+                        << "_rheobase_acq_y.csv"
+                        << std::endl;
+                }
+                else
+                {
+                    std::cerr << "Failed to open rheobase acquisition output file."
+                        << std::endl;
+                }
+            }
+        }
+        //
 
-    //        // Load all attributes
-    //        for (int j = 0; j < groups[i].GetAttributes().size(); j++)
-    //        {
-    //            const LEAD::Attribute& attribute = groups[i].GetAttributes()[j];
+        std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << experiment.GetName();
+        
+        ActionPotential* actionPotential = extractor.ExtractActionPotential(rheobase.acquisition.GetRecording().GetData(), rheobase.GetSweepProperties().spikeIndices[0]);
+        experiment.setActionPotential(actionPotential);
+    }
 
-    //            recording.AddAttribute(QString::fromStdString(attribute.GetName()), QString::fromStdString(attribute.GetValue()));
-    //        }
+    for (Sweep& sweep : experiment.GetSweeps())
+    {
+        sweep.stimulus.GetRecording().GetData().Downsample();
+        sweep.acquisition.GetRecording().GetData().Downsample();
+    }
 
-    //        ReadTimeseries(nwbFile, groupName.toStdString(), recording);
-
-    //        totalSize += ((recording.GetData().xSeries.size() + recording.GetData().ySeries.size()) * sizeof(float)) / 1000000.0f;
-
-    //        for (auto it = recording.GetAttributes().constBegin(); it != recording.GetAttributes().constEnd(); ++it)
-    //        {
-    //            totalSize += it.value().size() / 1000000.0f;
-    //            //qDebug() << "Attribute2 size: " << it.key() << " " << it.value().size();
-    //        }
-
-    //        experiment.addStimulus(std::move(recording));
-    //    }
-    //}
     nwbFile.Close();
     qDebug() << ">>>>>>>> NUM SWEEPS: " << experiment.GetSweeps().size();
     std::cout << "Size: " << totalSize << "MB" << std::endl;
-
-    //if (experiment.getAcquisitions().size() > 0)
-    //{
-    //    const QHash<QString, QString>& attrs = experiment.getAcquisitions()[0].GetAttributes();
-    //    for (auto it = attrs.constBegin(); it != attrs.constEnd(); ++it)
-    //    {
-    //        qDebug() << "Attr: " << it.key() << "Value: " << it.value();
-    //    }
-    //}
-
-    //dataset.iterateAttrs((H5::attr_operator_t) attr_op);
 }
