@@ -11,26 +11,49 @@ bool AnnotationTable::HasColumn(QString columnName)
 
 void AnnotationTable::RemoveRows(const std::vector<size_t>& rowsToDelete)
 {
-    // Delete rows from index
-    for (size_t row : rowsToDelete)
-        index.erase(index.begin() + row);
+    if (rowsToDelete.empty())
+        return;
 
-    // Delete rows from values
-    size_t rowCount = values.size();
+    // AnnotationTable::values is column-major, so index.size() is the row count.
+    const size_t rowCount = index.size();
 
+    // Mark rows for deletion first, so row indices are not invalidated while erasing.
     std::vector<char> remove(rowCount, false);
 
-    for (std::size_t row : rowsToDelete)
-        remove[row] = true;
+    for (size_t row : rowsToDelete)
+    {
+        // Ignore invalid row indices defensively.
+        if (row < rowCount)
+            remove[row] = true;
+    }
 
-    std::size_t row_index = 0;
+    // Erase entries whose row index was marked.
+    // This works for both the index vector and each column in values.
+    auto eraseMarkedRows = [&](std::vector<QString>& rows)
+        {
+            size_t row = 0;
 
-    values.erase(std::remove_if(values.begin(), values.end(),
-            [&](const std::vector<QString>&) {
-                return remove[row_index++] != 0;
-            }
-        ), values.end()
-    );
+            rows.erase(
+                std::remove_if(
+                    rows.begin(),
+                    rows.end(),
+                    [&](const QString&)
+                    {
+                        // If a column is unexpectedly longer than index, keep extra entries.
+                        if (row >= remove.size())
+                            return false;
+
+                        return remove[row++] != 0;
+                    }),
+                rows.end());
+        };
+
+    // Remove rows from the table index.
+    eraseMarkedRows(index);
+
+    // Remove the same row positions from every metadata column.
+    for (std::vector<QString>& column : values)
+        eraseMarkedRows(column);
 }
 
 void NumericMatrix::RemoveRows(const std::vector<size_t>& rowsToDelete)
