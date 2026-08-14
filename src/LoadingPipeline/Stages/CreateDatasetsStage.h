@@ -158,7 +158,8 @@ private:
     {
         auto featureDataset = mv::data().createDataset<Points>("Points", config.displayName, mv::Dataset<mv::DatasetImpl>(), "", false);
         featureDataset->setProperty("PatchSeqType", sourceName);
-        featureDataset->setData(data.X.values, data.X.columnCount);
+        featureDataset->setData(std::move(data.X.values), data.X.columnCount);
+        featureDataset->setDimensionNames(data.var.index);
 
         events().notifyDatasetAdded(featureDataset);
         events().notifyDatasetDataChanged(featureDataset);
@@ -173,6 +174,7 @@ private:
         auto embeddingDataset = mv::data().createDataset<Points>("Points", embedding.displayName, parent, "", false);
         embeddingDataset->setProperty("PatchSeqType", embeddingName);
         embeddingDataset->setData(data.X.values, data.X.columnCount);
+        embeddingDataset->setDimensionNames(data.var.index);
 
         events().notifyDatasetAdded(embeddingDataset);
         events().notifyDatasetDataChanged(embeddingDataset);
