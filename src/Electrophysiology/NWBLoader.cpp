@@ -450,12 +450,6 @@ void NWBLoader::LoadNWB(QString filePath, Experiment& experiment, LoadInfo& info
         sweep.stimulus.CalculateStimulusAmplitude();
 
         sweep.DetectSpikes();
-        if (experiment.GetName() == "QM24.26.011.14v.02A.04")
-        {
-            std::cout << "beep" << std::endl;
-            if (sweep.GetSweepProperties().spikeIndices.size() == 1)
-                sweep.DetectSpikes();
-        }
         sweep.stimulus.GetRecording().GetData().ComputeExtents();
         sweep.acquisition.GetRecording().GetData().ComputeExtents();
 
@@ -484,59 +478,13 @@ void NWBLoader::LoadNWB(QString filePath, Experiment& experiment, LoadInfo& info
         }
     }
 
+    // Compute action potential from rheobase sweep, and mark that sweep as rheobase
     if (rheobaseIndex != -1)
     {
-        const Sweep& rheobase = experiment.GetSweeps()[rheobaseIndex];
+        Sweep& rheobase = experiment.GetSweeps()[rheobaseIndex];
+        rheobase.MarkLowestSpikingSweep();
+
         SpikeExtractor extractor;
-
-            // Temp code
-            if (experiment.GetName() == "QM24.26.011.14v.02A.04")
-            {
-            const auto& acqData = rheobase.acquisition.GetRecording().GetData();
-            const auto& spikeIndices = rheobase.GetSweepProperties().spikeIndices;
-
-            // Print spike indices
-            std::cout << "Spike indices: ";
-            for (int index : spikeIndices)
-            {
-                std::cout << index << " ";
-            }
-            std::cout << std::endl;
-
-            // Save acquisition y-series to disk
-            {
-                std::ofstream file(
-                    experiment.GetName() + "_rheobase_acq_y.csv"
-                );
-
-                if (file.is_open())
-                {
-                    file << "index,y\n";
-
-                    for (size_t i = 0; i < acqData.ySeries.size(); ++i)
-                    {
-                        file << acqData.xSeries[i] << "," << acqData.ySeries[i] << "\n";
-                    }
-
-                    file.close();
-
-                    std::cout
-                        << "Saved rheobase acquisition to "
-                        << experiment.GetName()
-                        << "_rheobase_acq_y.csv"
-                        << std::endl;
-                }
-                else
-                {
-                    std::cerr << "Failed to open rheobase acquisition output file."
-                        << std::endl;
-                }
-            }
-        }
-        //
-
-        std::cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << experiment.GetName();
-        
         ActionPotential* actionPotential = extractor.ExtractActionPotential(rheobase.acquisition.GetRecording().GetData(), rheobase.GetSweepProperties().spikeIndices[0]);
         experiment.setActionPotential(actionPotential);
     }
