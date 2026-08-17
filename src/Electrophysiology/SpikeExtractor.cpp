@@ -100,30 +100,16 @@ ActionPotential* SpikeExtractor::ExtractActionPotential(
     constexpr float PRE_THRESHOLD_SECONDS = 0.001f;
     constexpr float POST_THRESHOLD_SECONDS = 0.003f;
 
-    const float thresholdTime =
-        acq.xSeries[thresholdIndex];
+    const float thresholdTime = acq.xSeries[thresholdIndex];
 
-    const float startTime =
-        thresholdTime - PRE_THRESHOLD_SECONDS;
+    const float startTime = thresholdTime - PRE_THRESHOLD_SECONDS;
+    const float endTime = thresholdTime + POST_THRESHOLD_SECONDS;
 
-    const float endTime =
-        thresholdTime + POST_THRESHOLD_SECONDS;
+    auto startIt = std::lower_bound(acq.xSeries.begin(), acq.xSeries.end(), startTime);
+    auto endIt = std::upper_bound(acq.xSeries.begin(), acq.xSeries.end(), endTime);
 
-    auto startIt = std::lower_bound(
-        acq.xSeries.begin(),
-        acq.xSeries.end(),
-        startTime);
-
-    auto endIt = std::upper_bound(
-        acq.xSeries.begin(),
-        acq.xSeries.end(),
-        endTime);
-
-    const size_t startIndex =
-        std::distance(acq.xSeries.begin(), startIt);
-
-    const size_t endIndex =
-        std::distance(acq.xSeries.begin(), endIt);
+    const size_t startIndex = std::distance(acq.xSeries.begin(), startIt);
+    const size_t endIndex = std::distance(acq.xSeries.begin(), endIt);
 
     if (startIndex >= endIndex)
         return nullptr;
@@ -139,8 +125,7 @@ ActionPotential* SpikeExtractor::ExtractActionPotential(
     for (size_t i = startIndex; i < endIndex; ++i)
     {
         // Assuming xSeries is seconds; output AP time in ms.
-        apTime.push_back(
-            (acq.xSeries[i] - t0) * 1000.0f);
+        apTime.push_back((acq.xSeries[i] - t0) * 1000.0f);
 
         apVoltage.push_back(acq.ySeries[i]);
     }
