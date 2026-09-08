@@ -62,40 +62,40 @@ private:
     void loadMorphologyData(QString filePath, const DataFrame& metadata);
     void loadMorphologyCells(QDir dir);
     void loadEphysTraces(QDir dir);
-    void loadUMap(QString filePath, mv::Dataset<Points> parent, QString datasetName, BiMap& bimap);
+    void loadUMap(QString filePath, mv::Dataset<Points> parent, QString datasetName, mv::BiMap& bimap);
 
 private:
     DataFrame _taxonomyDf;
     QHash<QString, QColor> _cellTypeColors;
     ColorTaxonomy _colorTaxonomy;
 
-    KeyBasedSelectionGroup _selectionGroup;
+    mv::KeyBasedSelectionGroup _selectionGroup;
 
     // Metadata
     DataFrame _metadataDf;
-    Dataset<Text> _metadata;
+    mv::Dataset<Text> _metadata;
 
     // Gene expressions
     DataFrame _transcriptomicsDf;
-    Dataset<Points> _geneExpressionData;
+    mv::Dataset<Points> _geneExpressionData;
     DataFrame _gexprMetadata;
 
     // Electrophysiology
     DataFrame _ephysDf;
-    Dataset<Points> _ephysData;
+    mv::Dataset<Points> _ephysData;
     DataFrame _ephysMetadata;
 
     // Ephys traces
-    Dataset<EphysExperiments> _ephysTraces;
+    mv::Dataset<EphysExperiments> _ephysTraces;
     std::vector<QString> _ephysTraceCellIds;
 
     // Morphology
     DataFrame _morphologyDf;
-    Dataset<Points> _morphoData;
+    mv::Dataset<Points> _morphoData;
     DataFrame _morphoMetadata;
 
     // Cell morphology
-    Dataset<CellMorphologies> _cellMorphoData;
+    mv::Dataset<CellMorphologies> _cellMorphoData;
 
     mv::ModalTask _task;
 };

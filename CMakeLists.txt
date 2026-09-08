@@ -37,14 +37,10 @@ set(PLUGIN_SOURCES
     src/PatchSeqDataLoader.h
     src/PatchSeqDataLoader.cpp
     src/PatchSeqDataLoader.json
-    src/Schema.h
-    src/Schema.cpp
     src/DataFrame.h
     src/DataFrame.cpp
     src/MatrixData.h
     src/MatrixData.cpp
-    src/TableData.h
-    src/TableData.cpp
     src/InputDialog.h
     src/InputDialog.cpp
     src/ColorTaxonomy.h

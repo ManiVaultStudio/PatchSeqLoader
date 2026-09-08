@@ -39,7 +39,7 @@ public:
         AddEphysTracesToSelectionGroupIfAvailable(ctx, linkedCount);
         AddMorphologiesToSelectionGroupIfAvailable(ctx, linkedCount);
 
-        events().addSelectionGroup(ctx.selectionGroup);
+        mv::events().addSelectionGroup(ctx.selectionGroup);
 
         ctx.result.Info(Name(), "Dataset linking complete.", QString("linked=%1").arg(linkedCount));
 

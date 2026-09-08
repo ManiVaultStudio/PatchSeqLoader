@@ -8,6 +8,7 @@
 #include <Task.h>
 
 #include <QFile>
+#include <QFileInfo>
 #include <QTextStream>
 #include <QStringList>
 

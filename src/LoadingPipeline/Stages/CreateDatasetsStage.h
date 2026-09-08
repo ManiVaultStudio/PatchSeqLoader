@@ -6,6 +6,7 @@
 #include "Config/ConfigSchema.h"
 
 #include <PointData/PointData.h>
+#include <ClusterData/ClusterData.h>
 
 #include <QString>
 #include <optional>
@@ -76,7 +77,7 @@ private:
         ++createdCount;
     }
 
-    void CreateEmbeddingDatasetIfAvailable(PipelineContext& ctx, const QString& embeddingName, const std::optional<config::TableSource>& embedding, const Dataset<Points>& parent, int& createdCount) const
+    void CreateEmbeddingDatasetIfAvailable(PipelineContext& ctx, const QString& embeddingName, const std::optional<config::TableSource>& embedding, const mv::Dataset<Points>& parent, int& createdCount) const
     {
         if (!embedding)
             return;
@@ -110,15 +111,15 @@ private:
         for (int i = 0; i < data.obs.columnNames.size(); i++)
             textDataset->addColumn(data.obs.columnNames[i], data.obs.values[i]);
 
-        events().notifyDatasetAdded(textDataset);
-        events().notifyDatasetDataChanged(textDataset);
-        events().notifyDatasetDataDimensionsChanged(textDataset);
+        mv::events().notifyDatasetAdded(textDataset);
+        mv::events().notifyDatasetDataChanged(textDataset);
+        mv::events().notifyDatasetDataDimensionsChanged(textDataset);
 
         ctx.textDatasets.insert(sourceName, textDataset);
 
         for (int i = 0; i < data.obs.values.size(); i++)
         {
-            Dataset<Clusters> clusterData = mv::data().createDataset<Clusters>("Cluster", data.obs.columnNames[i], textDataset);
+            mv::Dataset<Clusters> clusterData = mv::data().createDataset<Clusters>("Cluster", data.obs.columnNames[i], textDataset);
 
             const std::vector<QString>& clusterAsList = data.obs.values[i];
             std::map<QString, std::vector<unsigned int>> clusterMap = MakeClustersFromList(clusterAsList);
@@ -161,14 +162,14 @@ private:
         featureDataset->setData(std::move(data.X.values), data.X.columnCount);
         featureDataset->setDimensionNames(data.var.index);
 
-        events().notifyDatasetAdded(featureDataset);
-        events().notifyDatasetDataChanged(featureDataset);
-        events().notifyDatasetDataDimensionsChanged(featureDataset);
+        mv::events().notifyDatasetAdded(featureDataset);
+        mv::events().notifyDatasetDataChanged(featureDataset);
+        mv::events().notifyDatasetDataDimensionsChanged(featureDataset);
 
         ctx.featureDatasets.insert(sourceName, featureDataset);
     }
 
-    void CreateEmbeddingDataset(PipelineContext& ctx, const QString& embeddingName, const AnnotatedData& data, const config::TableSource& embedding, const Dataset<Points>& parent) const
+    void CreateEmbeddingDataset(PipelineContext& ctx, const QString& embeddingName, const AnnotatedData& data, const config::TableSource& embedding, const mv::Dataset<Points>& parent) const
     {
         // TODO: create 2D Points/embedding dataset here.
         auto embeddingDataset = mv::data().createDataset<Points>("Points", embedding.displayName, parent, "", false);
@@ -176,9 +177,9 @@ private:
         embeddingDataset->setData(data.X.values, data.X.columnCount);
         embeddingDataset->setDimensionNames(data.var.index);
 
-        events().notifyDatasetAdded(embeddingDataset);
-        events().notifyDatasetDataChanged(embeddingDataset);
-        events().notifyDatasetDataDimensionsChanged(embeddingDataset);
+        mv::events().notifyDatasetAdded(embeddingDataset);
+        mv::events().notifyDatasetDataChanged(embeddingDataset);
+        mv::events().notifyDatasetDataDimensionsChanged(embeddingDataset);
 
         ctx.embeddingDatasets.insert(embeddingName, embeddingDataset);
     }

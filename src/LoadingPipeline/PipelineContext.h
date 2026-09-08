@@ -96,7 +96,7 @@ struct PipelineContext
     QHash<QString, QHash<QString, QColor>> metadataColorMaps;
 
     // Linked selection group
-    KeyBasedSelectionGroup selectionGroup;
+    mv::KeyBasedSelectionGroup selectionGroup;
 
     PipelineResult result;
 

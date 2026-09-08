@@ -181,7 +181,7 @@ private:
 
         const QString displayName = source.displayName.isEmpty() ? QString("Ephys Traces") : source.displayName;
 
-        ctx.ephysTraces = mv::data().createDataset<EphysExperiments>("Electrophysiology Data", displayName, mv::Dataset<DatasetImpl>(), "", false);
+        ctx.ephysTraces = mv::data().createDataset<EphysExperiments>("Electrophysiology Data", displayName, mv::Dataset<mv::DatasetImpl>(), "", false);
 
         ctx.ephysTraces->setProperty("PatchSeqType", "EphysTraces");
 
@@ -246,9 +246,9 @@ private:
         qDebug() << "Ignored stimsets:" << loadInfo.ignoredStimsets;
         qDebug() << "Loaded stimsets:" << loadInfo.loadedStimsets;
 
-        events().notifyDatasetAdded(ctx.ephysTraces);
-        events().notifyDatasetDataChanged(ctx.ephysTraces);
-        events().notifyDatasetDataDimensionsChanged(ctx.ephysTraces);
+        mv::events().notifyDatasetAdded(ctx.ephysTraces);
+        mv::events().notifyDatasetDataChanged(ctx.ephysTraces);
+        mv::events().notifyDatasetDataDimensionsChanged(ctx.ephysTraces);
 
         ctx.result.Info(Name(), "Loaded ephys traces.", QString("loaded=%1, skipped=%2, failed=%3").arg(loaded).arg(skipped).arg(failed));
 
@@ -281,7 +281,7 @@ private:
 
         const QString displayName = source.displayName.isEmpty() ? QString("Cell Morphologies") : source.displayName;
 
-        ctx.cellMorphologies = mv::data().createDataset<CellMorphologies>("Cell Morphology Data", displayName, mv::Dataset<DatasetImpl>(), "", false);
+        ctx.cellMorphologies = mv::data().createDataset<CellMorphologies>("Cell Morphology Data", displayName, mv::Dataset<mv::DatasetImpl>(), "", false);
 
         ctx.cellMorphologies->setProperty("PatchSeqType", "Morphologies");
 
@@ -360,9 +360,9 @@ private:
             morphologyCellIds.push_back(cellIds[i]);
         ctx.morphologyCellIds = morphologyCellIds;
 
-        events().notifyDatasetAdded(ctx.cellMorphologies);
-        events().notifyDatasetDataChanged(ctx.cellMorphologies);
-        events().notifyDatasetDataDimensionsChanged(ctx.cellMorphologies);
+        mv::events().notifyDatasetAdded(ctx.cellMorphologies);
+        mv::events().notifyDatasetDataChanged(ctx.cellMorphologies);
+        mv::events().notifyDatasetDataDimensionsChanged(ctx.cellMorphologies);
 
         ctx.result.Info(Name(), "Loaded morphology reconstructions.", QString("loaded=%1, skipped=%2, failed=%3").arg(loaded).arg(skipped).arg(failed));
 
