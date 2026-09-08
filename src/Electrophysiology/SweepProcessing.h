@@ -1,6 +1,6 @@
 #pragma once
 
-#include <EphysData/Recording.h>
+#include <EphysData/Stimulus.h>
 
 class Envelope
 {
@@ -16,4 +16,4 @@ public:
     }
 };
 
-std::vector<Envelope> ComputeStimulusEnvelopes(Stimulus stimulus);
+//std::vector<Envelope> ComputeStimulusEnvelopes(Stimulus stimulus);

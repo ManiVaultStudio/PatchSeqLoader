@@ -6,8 +6,11 @@
 
 #include "EphysData/Experiment.h"
 #include "EphysData/ActionPotential.h"
+#include "EphysData/StimulusExtraction.h"
 
 #include <QDebug>
+#include <QFileInfo>
+#include <QRegularExpression>
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -171,32 +174,40 @@ namespace
         return -1;
     }
 
-    void ReadTimeseries(NWBFile& file, std::string groupName, Recording& recording)
+    void ReadTimeseries(NWBFile& file, std::string groupName, TimeSeries& ts)
     {
         //std::cout << "TIMESERIES " << groupName << std::endl;
         std::vector<hsize_t> dims;
-        file.OpenFloatDataset(groupName + "/data", recording.GetData().ySeries, dims);
-
-        recording.GetData().xSeries.resize(recording.GetData().ySeries.size());
-        std::iota(recording.GetData().xSeries.begin(), recording.GetData().xSeries.end(), 0);
+        file.OpenFloatDataset(groupName + "/data", ts.ySeries, dims);
 
         // Read sampling rate for xSeries
         std::string rateDatasetName = groupName + "/starting_time";
         LEAD::Dataset rateDataset = FindDataset(file.GetDatasets(), rateDatasetName);
         rateDataset.LoadAllAttributes(file.GetFileId());
-        float rate = 1;
+        float rate = -1;
 
         for (const auto& attr : rateDataset.GetAttributes())
         {
             if (attr.GetName() == "rate")
                 rate = QString::fromStdString(attr.GetValue()).toFloat();
         }
+        // If no sampling rate was found, for now just put values. FIXME might need to read in an actual xSeries then
+        if (rate == -1)
+        {
+            qWarning() << "Warning! No sampling rate found. Inventing timeseries x-axis";
+            ts.xSeries.resize(ts.ySeries.size());
+            std::iota(ts.xSeries.begin(), ts.xSeries.end(), 0);
+        }
+        else
+        {
+            ts.samplingRate = rate;
+            // Still store xSeries, but don't serialize it
+            ts.xSeries.resize(ts.ySeries.size());
+            std::iota(ts.xSeries.begin(), ts.xSeries.end(), 0);
+            float timeStep = (1.0f / rate);
+            std::transform(ts.xSeries.begin(), ts.xSeries.end(), ts.xSeries.begin(), [timeStep](auto& c) { return c * timeStep; });
+        }
 
-        float timeStep = (1.0f / rate);
-        std::transform(recording.GetData().xSeries.begin(), recording.GetData().xSeries.end(), recording.GetData().xSeries.begin(), [timeStep](auto& c) { return c * timeStep; });
-        //recording.GetData().downsample();
-
-        /////
         //std::cout << file.GetFileName() << std::endl;
         //if (file.GetFileName().find("H19.03.302.11.14.02.05") != std::string::npos)
         //{
@@ -208,42 +219,42 @@ namespace
         /////
     }
 
-    bool DetectFailedAcquisition(const Stimulus& stimulus, const Recording& acquisition)
-    {
-        const TimeSeries& stimSeries = stimulus.GetRecording().GetData();
-
-        int lastSignal = -1;
-        int failCount = 0;
-        for (int i = 0; i < stimSeries.ySeries.size(); i++)
-        {
-            if (abs(stimSeries.ySeries[i]) > 0.001f)
-                lastSignal = i;
-            //if (stimSeries.ySeries[i] > 0.001f && acquisition.GetData().ySeries[i] == 0)
-            //    failCount++;
-            bool acqFail = abs(acquisition.GetData().ySeries[i]) < 0.001f || std::isnan(acquisition.GetData().ySeries[i]);
-
-            if (acqFail && lastSignal != -1 && i - lastSignal < 2000)
-                failCount++;
-            //if (abs(stimSeries.ySeries[i]) > 0.001f && abs(acquisition.GetData().ySeries[i]) < 0.001f)
-            //    failCount++;
-        }
-        //qDebug() << "Fail count: " << failCount;
-        return failCount > 1800;
-        //if (failCount > 30)
-        //{
-        //    return true;
-        //}
-
-        //float refValue = recording.GetData().ySeries[recording.GetData().ySeries.size() / 2];
-        //for (int i = recording.GetData().ySeries.size() / 2; i < recording.GetData().ySeries.size(); i++)
-        //{
-        //    if (std::abs(recording.GetData().ySeries[i] - refValue) > 0.001f)
-        //        return false;
-        //}
-        //return true;
-    }
+//    bool DetectFailedAcquisition(const Stimulus& stimulus, const Recording& acquisition)
+//    {
+//        const TimeSeries& stimSeries = stimulus.GetRecording().GetData();
+//
+//        int lastSignal = -1;
+//        int failCount = 0;
+//        for (int i = 0; i < stimSeries.ySeries.size(); i++)
+//        {
+//            if (abs(stimSeries.ySeries[i]) > 0.001f)
+//                lastSignal = i;
+//            //if (stimSeries.ySeries[i] > 0.001f && acquisition.GetData().ySeries[i] == 0)
+//            //    failCount++;
+//            bool acqFail = abs(acquisition.GetData().ySeries[i]) < 0.001f || std::isnan(acquisition.GetData().ySeries[i]);
+//
+//            if (acqFail && lastSignal != -1 && i - lastSignal < 2000)
+//                failCount++;
+//            //if (abs(stimSeries.ySeries[i]) > 0.001f && abs(acquisition.GetData().ySeries[i]) < 0.001f)
+//            //    failCount++;
+//        }
+//        //qDebug() << "Fail count: " << failCount;
+//        return failCount > 1800;
+//        //if (failCount > 30)
+//        //{
+//        //    return true;
+//        //}
+//
+//        //float refValue = recording.GetData().ySeries[recording.GetData().ySeries.size() / 2];
+//        //for (int i = recording.GetData().ySeries.size() / 2; i < recording.GetData().ySeries.size(); i++)
+//        //{
+//        //    if (std::abs(recording.GetData().ySeries[i] - refValue) > 0.001f)
+//        //        return false;
+//        //}
+//        //return true;
+//    }
 }
-
+static int gid = 0;
 void NWBLoader::LoadNWB(QString filePath, Experiment& experiment, LoadInfo& info)
 {
     NWBFile nwbFile;
@@ -273,7 +284,7 @@ void NWBLoader::LoadNWB(QString filePath, Experiment& experiment, LoadInfo& info
     // Extract and store stimulus and acquisition as a recording pair
     QHash<QString, RecordingPair> recordingPairs;
     ExtractRecordings(groups, recordingPairs);
-
+    
     // For every recording pair, load and process all the data
     for (RecordingPair& recordingPair : recordingPairs)
     {
@@ -331,8 +342,9 @@ void NWBLoader::LoadNWB(QString filePath, Experiment& experiment, LoadInfo& info
         Sweep sweep;
 
         sweep.SetSweepNumber(stimSweepNumber);
-        sweep.stimulus.SetStimulusDescription(stimDescription);
-        sweep.stimulus.DetectStimulusType();
+        sweep.stimulus.SetDescription(stimDescription);
+        sweep.stimulus.DetectType();
+        //sweep.stimulus.AttemptParameterization();
 
         // Load associated timeseries
         // ACQUISITION
@@ -349,7 +361,7 @@ void NWBLoader::LoadNWB(QString filePath, Experiment& experiment, LoadInfo& info
                 sweep.acquisition.GetRecording().AddAttribute(QString::fromStdString(attribute.GetName()), QString::fromStdString(attribute.GetValue()));
             }
 
-            ReadTimeseries(nwbFile, recordingPair.acquisition.GetName(), sweep.acquisition.GetRecording());
+            ReadTimeseries(nwbFile, recordingPair.acquisition.GetName(), sweep.acquisition.GetRecording().GetData());
 
             totalSize += ((sweep.acquisition.GetRecording().GetData().xSeries.size() + sweep.acquisition.GetRecording().GetData().ySeries.size()) * sizeof(float)) / 1000000.0f;
 
@@ -361,6 +373,7 @@ void NWBLoader::LoadNWB(QString filePath, Experiment& experiment, LoadInfo& info
         }
 
         // STIMULUS
+        TimeSeries stimulusData;
         {
             recordingPair.stimulus.LoadAllAttributes(nwbFile.GetFileId());
 
@@ -369,11 +382,11 @@ void NWBLoader::LoadNWB(QString filePath, Experiment& experiment, LoadInfo& info
             {
                 const LEAD::Attribute& attribute = recordingPair.stimulus.GetAttributes()[j];
 
-                sweep.stimulus.GetRecording().AddAttribute(QString::fromStdString(attribute.GetName()), QString::fromStdString(attribute.GetValue()));
+                sweep.stimulus.AddAttribute(QString::fromStdString(attribute.GetName()), QString::fromStdString(attribute.GetValue()));
             }
 
-            ReadTimeseries(nwbFile, recordingPair.stimulus.GetName(), sweep.stimulus.GetRecording());
-            
+            ReadTimeseries(nwbFile, recordingPair.stimulus.GetName(), stimulusData);
+            qDebug() << "Sweep num: " << sweep.GetSweepNumber();
             //// Extract action potential before downsampling
             //if (stimDescription.contains("Rheo"))
             //{
@@ -428,31 +441,91 @@ void NWBLoader::LoadNWB(QString filePath, Experiment& experiment, LoadInfo& info
         //sweep.acquisition.GetRecording().GetData().Downsample();
         //sweep.stimulus.GetRecording().GetData().Downsample();
 
-        std::vector<Envelope> stimEnvelopes = ComputeStimulusEnvelopes(sweep.stimulus);
-        if (stimEnvelopes.empty())
+        TimeSeries copyTimeSeries = stimulusData;
+        if (!StimulusExtraction::NormalizeTrailingNaNs(stimulusData))
         {
-            qDebug() << "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM Empty Envelopes";
+            qDebug() << "Discarding sweep: stimulus is truncated by NaNs";
             continue;
         }
 
-        std::pair<int, int> stimRange = { stimEnvelopes[0].startIndex, stimEnvelopes[stimEnvelopes.size() - 1].endIndex };
+        auto stimulusRegion = StimulusExtraction::FindMainRegion(sweep.stimulus.GetType(), stimulusData);
+
+        if (!stimulusRegion)
+        {
+            qWarning() << "No stimulus regions found!";
+
+            {
+                QFile file(QString("stimulus_debug_%1.csv").arg(gid++));
+
+                if (file.open(QIODevice::WriteOnly | QIODevice::Text))
+                {
+                    QTextStream stream(&file);
+
+                    stream << "# stim desc=" << sweep.stimulus.GetDescription() << "\n";
+                    stream << "# stimulusType=" << static_cast<int>(sweep.stimulus.GetType()) << "\n";
+                    stream << "# samplingRate=" << stimulusData.samplingRate << "\n";
+                    stream << "x,y\n";
+
+                    for (size_t i = 0; i < copyTimeSeries.xSeries.size(); ++i)
+                        stream << copyTimeSeries.xSeries[i] << "," << copyTimeSeries.ySeries[i] << "\n";
+                }
+
+                qDebug() << "Wrote stimulus_debug.csv";
+                //std::exit(0);
+            }
+
+
+            continue;
+        }
+
+        StimulusTiming stimulusTiming;
+        stimulusTiming.startTime = stimulusRegion->startTime;
+        stimulusTiming.duration = stimulusRegion->Duration();
+        stimulusTiming.baseline = stimulusRegion->baseline;
+
+        constexpr float SWEEP_PADDING_SECONDS = 0.1f;
+
+        stimulusData.Trim(static_cast<int>(stimulusRegion->begin), static_cast<int>(stimulusRegion->end), SWEEP_PADDING_SECONDS);
+        sweep.acquisition.GetRecording().GetData().Trim(static_cast<int>(stimulusRegion->begin), static_cast<int>(stimulusRegion->end), SWEEP_PADDING_SECONDS);
+
+        sweep.stimulus.SetWindow(stimulusData.xSeries.front(), stimulusData.xSeries.back());
+
+        //std::vector<Envelope> stimEnvelopes = ComputeStimulusEnvelopes(sweep.stimulus);
+        //if (stimEnvelopes.empty())
+        //{
+        //    qDebug() << "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM Empty Envelopes";
+        //    continue;
+        //}
+
+        //std::pair<int, int> stimRange = { stimEnvelopes[0].startIndex, stimEnvelopes[stimEnvelopes.size() - 1].endIndex };
         //std::pair<int, int> stimRange = sweep.stimulus.GetRecording().GetData().FindStimulusRange();
-        if (stimRange.first != -1)
-        {
-            constexpr float SWEEP_PADDING_SECONDS = 0.1f;
+        //if (stimRange.first != -1)
+        //{
+        //    constexpr float SWEEP_PADDING_SECONDS = 0.1f;
 
-            sweep.stimulus.GetRecording().GetData().Trim(stimRange.first, stimRange.second, SWEEP_PADDING_SECONDS);
-            sweep.acquisition.GetRecording().GetData().Trim(stimRange.first, stimRange.second, SWEEP_PADDING_SECONDS);
-        }
-        else
-            continue;
+        //    stimulusRecording.Trim(stimRange.first, stimRange.second, SWEEP_PADDING_SECONDS);
+        //    sweep.acquisition.GetRecording().GetData().Trim(stimRange.first, stimRange.second, SWEEP_PADDING_SECONDS);
+        //}
+        //else
+        //    continue;
 
-        sweep.stimulus.CalculateStimulusAmplitude();
+
+
+        //sweep.stimulus.CalculateStimulusAmplitude();
 
         sweep.DetectSpikes();
-        sweep.stimulus.GetRecording().GetData().ComputeExtents();
+        stimulusData.ComputeExtents();
         sweep.acquisition.GetRecording().GetData().ComputeExtents();
 
+        // Try to replace the trimmed stimulus waveform with a compact parameterized representation.
+        auto parameterized = StimulusExtraction::TryParameterize(sweep.stimulus.GetType(), stimulusData);
+
+        if (parameterized)
+            sweep.stimulus.SetRepresentation(std::move(*parameterized));
+        else
+            sweep.stimulus.SetRepresentation(std::move(stimulusData), stimulusTiming);
+        
+        // Finished, add sweep to experiment
         experiment.AddSweep(std::move(sweep));
     }
 
@@ -464,12 +537,12 @@ void NWBLoader::LoadNWB(QString filePath, Experiment& experiment, LoadInfo& info
         const Sweep& sweep = experiment.GetSweeps()[i];
 
         // Only regard long square stimuli for computing rheobase
-        if (sweep.stimulus.GetStimulusType() != StimulusType::LongSquare)
+        if (sweep.stimulus.GetType() != StimulusType::LongSquare)
             continue;
 
         // Find the sweep with the minimum stimulus amplitude required to produce a spike
         const int spikeCount = sweep.GetSweepProperties().GetSpikeCount();
-        const double stimulusAmplitude = sweep.stimulus.GetStimulusAmplitude();
+        const float stimulusAmplitude = sweep.stimulus.GetPeakAmplitude();
 
         if (spikeCount > 0 && stimulusAmplitude < minRheobaseAmplitude)
         {
@@ -491,7 +564,9 @@ void NWBLoader::LoadNWB(QString filePath, Experiment& experiment, LoadInfo& info
 
     for (Sweep& sweep : experiment.GetSweeps())
     {
-        sweep.stimulus.GetRecording().GetData().Downsample();
+        if (TimeSeries* data = sweep.stimulus.GetArbitraryData())
+            data->Downsample();
+
         sweep.acquisition.GetRecording().GetData().Downsample();
     }
 

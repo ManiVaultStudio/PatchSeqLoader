@@ -52,24 +52,24 @@ namespace
     }
 }
 
-std::vector<Envelope> ComputeStimulusEnvelopes(Stimulus stimulus)
-{
-    TimeSeries& ts = stimulus.GetRecording().GetData();
-
-    std::vector<Envelope> envelopes;
-    FindNonzeroRanges(ts.ySeries, envelopes);
-
-    ComputeEnvelopeAreas(envelopes, ts.ySeries);
-
-    if (envelopes.size() <= 1)
-        return envelopes;
-
-    //float avgPeak = envelopes[0].area / (envelopes[0].endIndex - envelopes[0].startIndex);
-
-    if (envelopes[0].area < envelopes[1].area / 4)
-        envelopes.erase(envelopes.begin()); // Remove test spike (which is around 50mV for ~2000 steps)
-    else
-        qDebug() << "Interesting Envelope area: " << envelopes[0].area << envelopes[1].area;
-
-    return envelopes;
-}
+//std::vector<Envelope> ComputeStimulusEnvelopes(Stimulus stimulus)
+//{
+//    TimeSeries& ts = stimulus.GetRecording().GetData();
+//
+//    std::vector<Envelope> envelopes;
+//    FindNonzeroRanges(ts.ySeries, envelopes);
+//
+//    ComputeEnvelopeAreas(envelopes, ts.ySeries);
+//
+//    if (envelopes.size() <= 1)
+//        return envelopes;
+//
+//    //float avgPeak = envelopes[0].area / (envelopes[0].endIndex - envelopes[0].startIndex);
+//
+//    if (envelopes[0].area < envelopes[1].area / 4)
+//        envelopes.erase(envelopes.begin()); // Remove test spike (which is around 50mV for ~2000 steps)
+//    else
+//        qDebug() << "Interesting Envelope area: " << envelopes[0].area << envelopes[1].area;
+//
+//    return envelopes;
+//}
