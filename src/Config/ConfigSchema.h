@@ -8,6 +8,7 @@ namespace config::keys
     inline const QString Format = "format";
     inline const QString Version = "version";
     inline const QString DatasetId = "dataset_id";
+    inline const QString IsCortical = "is_cortical";
 
     inline const QString Sources = "sources";
     inline const QString Embeddings = "embeddings";

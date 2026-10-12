@@ -59,6 +59,7 @@ namespace config
         QString format;
         QString version;
         QString datasetId;
+        bool isCortical = false;
 
         std::optional<config::TableSource> rna;
         std::optional<config::TableSource> ephys;

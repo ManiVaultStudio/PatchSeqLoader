@@ -285,9 +285,7 @@ private:
 
         ctx.cellMorphologies->setProperty("PatchSeqType", "Morphologies");
 
-#if defined(DALLEYLEE) || defined(WALEBOER)
-        ctx.cellMorphologies->setProperty("isCortical", true);
-#endif
+        ctx.cellMorphologies->setProperty("isCortical", ctx.config.isCortical);
 
         QStringList cellIds;
         std::vector<CellMorphology> loadedMorphologies;

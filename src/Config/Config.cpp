@@ -88,7 +88,10 @@ namespace
         return true;
     }
 
-    std::optional<config::TableSource> ReadTableSource(const QJsonObject& parent, const QString& key, const QString& parentPath)
+    std::optional<config::TableSource> ReadTableSource(
+        const QJsonObject& parent,
+        const QString& key,
+        const QString& parentPath)
     {
         const QString sourcePath = QString("%1.%2").arg(parentPath, key);
 
@@ -375,6 +378,7 @@ namespace config
         format.clear();
         version.clear();
         datasetId.clear();
+        isCortical = false;
 
         rna.reset();
         ephys.reset();
@@ -423,6 +427,7 @@ namespace config
         format = ReadString(root, config::keys::Format);
         version = ReadString(root, config::keys::Version);
         datasetId = ReadString(root, config::keys::DatasetId);
+        isCortical = root.value(config::keys::IsCortical).toBool(false);
 
         ValidateKnownFormat(format);
 
