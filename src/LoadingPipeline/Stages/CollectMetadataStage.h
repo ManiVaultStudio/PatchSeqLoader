@@ -54,14 +54,14 @@ namespace
 
     static bool IsColorColumn(const QString& columnName)
     {
-        return columnName.endsWith(COLOR_SUFFIX);
+        return columnName.endsWith(COLOR_SUFFIX, Qt::CaseInsensitive);
     }
 
     static QString BaseColumnNameForColorColumn(const QString& colorColumnName)
     {
         QString baseName = colorColumnName;
 
-        if (baseName.endsWith(COLOR_SUFFIX))
+        if (baseName.endsWith(COLOR_SUFFIX, Qt::CaseInsensitive))
             baseName.chop(QString(COLOR_SUFFIX).size());
 
         return baseName;
@@ -109,6 +109,26 @@ public:
         ExtractColorMaps(combined.obs, ctx.metadataColorMaps);
         RemoveColorColumns(combined.obs);
         AssignDefaultBinaryMetadataColors(combined.obs, ctx.metadataColorMaps);
+
+        // FIXME Dataset-specific canonical lobe colors. These intentionally override
+        // extracted/generated colors for the "lobe" metadata column.
+        if (combined.obs.HasColumn("lobe"))
+        {
+            auto& lobeColors = ctx.metadataColorMaps["lobe"];
+
+            // Replace any colors that were extracted/generated previously.
+            lobeColors.clear();
+
+            // These strings must exactly match the values in the "lobe" column.
+            lobeColors.insert("CeG", QColor("#E6B6B6"));
+            lobeColors.insert("FroL", QColor("#E8CD59"));
+            lobeColors.insert("ParL", QColor("#EC813B"));
+            lobeColors.insert("TemL", QColor("#D55C92"));
+            lobeColors.insert("OccL", QColor("#D24D48"));
+            lobeColors.insert("InL", QColor("#B94A39"));
+            lobeColors.insert("LimL", QColor("#8D7BDB"));
+            lobeColors.insert("Other", QColor("#4C72B0"));
+        }
 
         combined.X.rowCount = combined.obs.index.size();
         combined.X.columnCount = 0;
