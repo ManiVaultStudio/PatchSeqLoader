@@ -100,9 +100,17 @@ namespace
 
         if (!parent.value(key).isObject())
         {
-            qWarning() << "Config table source" << sourcePath << "exists but is not an object. Expected:"
-                << QString("\"%1\": { \"%2\": \"...\", \"%3\": \"...\", \"%4\": \"...\", \"%5\": [...] }")
-                    .arg(key, config::keys::Path, config::keys::DisplayName, config::keys::Index, config::keys::ObsColumns);
+            qWarning() << "Config table source" << sourcePath
+                << "exists but is not an object. Expected:"
+                << QString("\"%1\": { \"%2\": \"...\", \"%3\": \"...\", \"%4\": \"...\", \"%5\": [...], \"%6\": [...] }")
+                .arg(
+                    key,
+                    config::keys::Path,
+                    config::keys::DisplayName,
+                    config::keys::Index,
+                    config::keys::ObsColumns,
+                    config::keys::ObsPriority);
+
             return std::nullopt;
         }
 
@@ -115,29 +123,58 @@ namespace
 
         if (source.path.isEmpty())
         {
-            qWarning() << "Config table source" << sourcePath << "has no path. Expected field:" << QString("%1.%2").arg(sourcePath, config::keys::Path);
+            qWarning() << "Config table source" << sourcePath
+                << "has no path. Expected field:"
+                << QString("%1.%2").arg(sourcePath, config::keys::Path);
+
             return std::nullopt;
         }
 
         if (source.displayName.isEmpty())
         {
-            qWarning() << "Config table source" << sourcePath << "has no display name. Expected field:" << QString("%1.%2").arg(sourcePath, config::keys::DisplayName);
+            qWarning() << "Config table source" << sourcePath
+                << "has no display name. Expected field:"
+                << QString("%1.%2").arg(sourcePath, config::keys::DisplayName);
+
             return std::nullopt;
         }
 
         if (source.index.isEmpty())
         {
-            qWarning() << "Config table source" << sourcePath << "has no index column. Expected field:" << QString("%1.%2").arg(sourcePath, config::keys::Index);
+            qWarning() << "Config table source" << sourcePath
+                << "has no index column. Expected field:"
+                << QString("%1.%2").arg(sourcePath, config::keys::Index);
+
             return std::nullopt;
         }
 
         if (!ReadObsColumns(object, sourcePath, source))
             return std::nullopt;
 
+        // Optional. Determines the preferred order in which obs metadata columns
+        // should be turned into metadata-derived datasets.
+        // Missing obs_priority simply means: keep the normal metadata/file order.
+        source.obsPriority = ReadStringArray(object, config::keys::ObsPriority).value_or(QStringList());
+
         if (source.obsColumnMode == config::ObsColumnMode::All)
-            qInfo() << "Loaded config table source" << sourcePath << "from" << source.path << "using index column" << source.index << "with all non-index columns treated as obs columns.";
+        {
+            qInfo() << "Loaded config table source" << sourcePath
+                << "from" << source.path
+                << "using index column" << source.index
+                << "with all non-index columns treated as obs columns"
+                << "and" << source.obsPriority.size()
+                << "priority obs columns.";
+        }
         else
-            qInfo() << "Loaded config table source" << sourcePath << "from" << source.path << "using index column" << source.index << "with" << source.obsColumns.size() << "explicit obs columns.";
+        {
+            qInfo() << "Loaded config table source" << sourcePath
+                << "from" << source.path
+                << "using index column" << source.index
+                << "with" << source.obsColumns.size()
+                << "explicit obs columns and"
+                << source.obsPriority.size()
+                << "priority obs columns.";
+        }
 
         return source;
     }

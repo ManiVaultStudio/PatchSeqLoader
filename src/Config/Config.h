@@ -22,7 +22,11 @@ namespace config
         QString index;
 
         ObsColumnMode obsColumnMode = ObsColumnMode::Explicit;
-        QStringList obsColumns;
+        QStringList obsColumns; // Optional
+
+        // Preferred order for creating metadata-derived datasets.
+        // Columns not listed here are appended afterward in their existing order
+        QStringList obsPriority;
     };
 
     struct EphysTracesSource

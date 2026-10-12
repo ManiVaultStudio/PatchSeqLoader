@@ -24,6 +24,58 @@ namespace
         }
         return clusterData;
     }
+    QStringList OrderedMetadataColumns(const AnnotationTable& obs, const QStringList& priority)
+    {
+        QStringList ordered;
+        QSet<QString> added;
+
+        auto findColumn = [&](const QString& name) -> int
+            {
+                for (int i = 0; i < static_cast<int>(obs.columnNames.size()); ++i)
+                {
+                    if (obs.columnNames[i] == name)
+                        return i;
+                }
+
+                return -1;
+            };
+
+        // First add priority columns that actually exist.
+        for (const QString& columnName : priority)
+        {
+            if (added.contains(columnName))
+                continue;
+
+            if (findColumn(columnName) >= 0)
+            {
+                ordered.push_back(columnName);
+                added.insert(columnName);
+            }
+        }
+
+        // Then append every remaining metadata column in its existing order.
+        for (const QString& columnName : obs.columnNames)
+        {
+            if (!added.contains(columnName))
+            {
+                ordered.push_back(columnName);
+                added.insert(columnName);
+            }
+        }
+
+        return ordered;
+    }
+
+    int FindObsColumn(const AnnotationTable& obs, const QString& columnName)
+    {
+        for (int i = 0; i < static_cast<int>(obs.columnNames.size()); ++i)
+        {
+            if (obs.columnNames[i] == columnName)
+                return i;
+        }
+
+        return -1;
+    }
 }
 
 class CreateDatasetsStage final : public PipelineStage
@@ -105,10 +157,19 @@ private:
 
     void CreateMetadataDataset(PipelineContext& ctx, const QString& sourceName, AnnotatedData& data, const config::TableSource& config) const
     {
-        auto textDataset = mv::data().createDataset<Text>("Text", config.displayName, mv::Dataset<mv::DatasetImpl>(), "", false);
+        auto textDataset = mv::data().createDataset<Text>(
+            "Text",
+            config.displayName,
+            mv::Dataset<mv::DatasetImpl>(),
+            "",
+            false);
+
         textDataset->setProperty("PatchSeqType", sourceName);
+
         textDataset->addColumn(data.obs.indexName, data.obs.index);
-        for (int i = 0; i < data.obs.columnNames.size(); i++)
+
+        // Keep the text table itself in the actual metadata column order.
+        for (int i = 0; i < static_cast<int>(data.obs.columnNames.size()); ++i)
             textDataset->addColumn(data.obs.columnNames[i], data.obs.values[i]);
 
         mv::events().notifyDatasetAdded(textDataset);
@@ -117,15 +178,24 @@ private:
 
         ctx.textDatasets.insert(sourceName, textDataset);
 
-        for (int i = 0; i < data.obs.values.size(); i++)
+        const QStringList orderedColumnNames =
+            OrderedMetadataColumns(data.obs, config.obsPriority);
+
+        for (const QString& columnName : orderedColumnNames)
         {
-            mv::Dataset<Clusters> clusterData = mv::data().createDataset<Clusters>("Cluster", data.obs.columnNames[i], textDataset);
+            const int columnIndex = FindObsColumn(data.obs, columnName);
 
-            const std::vector<QString>& clusterAsList = data.obs.values[i];
-            std::map<QString, std::vector<unsigned int>> clusterMap = MakeClustersFromList(clusterAsList);
+            if (columnIndex < 0)
+                continue;
 
-            const auto colorMapIt = ctx.metadataColorMaps.find(data.obs.columnNames[i]);
+            mv::Dataset<Clusters> clusterData =
+                mv::data().createDataset<Clusters>("Cluster", columnName, textDataset);
 
+            const std::vector<QString>& clusterAsList = data.obs.values[columnIndex];
+            std::map<QString, std::vector<unsigned int>> clusterMap =
+                MakeClustersFromList(clusterAsList);
+
+            const auto colorMapIt = ctx.metadataColorMaps.find(columnName);
             const bool hasColorMap = colorMapIt != ctx.metadataColorMaps.end();
 
             for (auto& kv : clusterMap)
