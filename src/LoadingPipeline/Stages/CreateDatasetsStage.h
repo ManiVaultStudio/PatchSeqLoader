@@ -220,6 +220,13 @@ private:
             if (!hasColorMap)
                 Cluster::colorizeClusters(clusterData->getClusters());
 
+            // Set empty label clusters to grey
+            for (Cluster& cluster : clusterData->getClusters())
+            {
+                if (cluster.getName().isEmpty())
+                    cluster.setColor(QColor(220, 220, 220));
+            }
+
             mv::events().notifyDatasetDataChanged(clusterData);
             mv::events().notifyDatasetDataDimensionsChanged(clusterData);
         }

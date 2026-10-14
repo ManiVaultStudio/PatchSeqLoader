@@ -395,8 +395,7 @@ private:
             if (!IsColorColumn(colorColumnName))
                 continue;
 
-            const QString baseColumnName =
-                BaseColumnNameForColorColumn(colorColumnName);
+            const QString baseColumnName = BaseColumnNameForColorColumn(colorColumnName);
 
             if (!columnByName.contains(baseColumnName))
             {
