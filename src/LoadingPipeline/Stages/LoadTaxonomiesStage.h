@@ -335,11 +335,13 @@ private:
         const QString preferredAliasSuffix = AliasSuffixForLevelColumn(leafColumnName, leafLevel);
 
         QHash<QString, int> metadataColumnByLevel;
+
         for (const QString& level : taxonomy.levels)
         {
-            int column = FindColumnForTaxonomyLevel(obs, level, preferredAliasSuffix);
+            const int column = FindColumnForTaxonomyLevel(obs, level, preferredAliasSuffix);
+
             if (column < 0)
-                column = AddColumn(obs, ColumnNameForLevelAlias(level, preferredAliasSuffix));
+                continue;
 
             metadataColumnByLevel[level] = column;
         }
