@@ -55,6 +55,7 @@ namespace
         }
         return clusterData;
     }
+
     QStringList OrderedMetadataColumns(const AnnotationTable& obs, const QStringList& priority)
     {
         QStringList ordered;
@@ -223,6 +224,7 @@ private:
                 mv::data().createDataset<Clusters>("Cluster", columnName, textDataset);
 
             const std::vector<QString>& clusterAsList = data.obs.values[columnIndex];
+
             std::map<QString, std::vector<unsigned int>> clusterMap =
                 MakeClustersFromList(clusterAsList);
 
@@ -264,7 +266,10 @@ private:
             for (Cluster& cluster : clusterData->getClusters())
             {
                 if (cluster.getName().isEmpty())
+                {
                     cluster.setColor(QColor(220, 220, 220));
+                    cluster.setName("Unassigned");
+                }
             }
 
             mv::events().notifyDatasetDataChanged(clusterData);
