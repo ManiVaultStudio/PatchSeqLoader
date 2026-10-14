@@ -20,6 +20,7 @@ namespace config::keys
     inline const QString Index = "index";
     inline const QString ObsColumns = "obs_columns";
     inline const QString ObsPriority = "obs_priority";
+    inline const QString ClusterPriority = "cluster_priority";
     inline const QString DisplayName = "display_name";
 
     // Directory-backed source fields

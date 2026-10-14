@@ -27,6 +27,10 @@ namespace config
         // Preferred order for creating metadata-derived datasets.
         // Columns not listed here are appended afterward in their existing order
         QStringList obsPriority;
+
+        // Metadata column -> preferred cluster/category order.
+        // Unlisted cluster labels are appended afterward.
+        QMap<QString, QStringList> clusterPriority;
     };
 
     struct EphysTracesSource

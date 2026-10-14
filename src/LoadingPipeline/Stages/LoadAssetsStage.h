@@ -284,7 +284,6 @@ private:
         ctx.cellMorphologies = mv::data().createDataset<CellMorphologies>("Cell Morphology Data", displayName, mv::Dataset<mv::DatasetImpl>(), "", false);
 
         ctx.cellMorphologies->setProperty("PatchSeqType", "Morphologies");
-
         ctx.cellMorphologies->setProperty("isCortical", ctx.config.isCortical);
 
         QStringList cellIds;

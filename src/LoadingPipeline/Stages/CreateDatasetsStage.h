@@ -13,6 +13,37 @@
 
 namespace
 {
+    QStringList OrderedClusterLabels(const std::map<QString, std::vector<unsigned int>>& clusterMap, const QStringList& priority)
+    {
+        QStringList ordered;
+        QSet<QString> added;
+
+        // Add configured cluster labels first, if they actually exist.
+        for (const QString& label : priority)
+        {
+            if (added.contains(label))
+                continue;
+
+            if (clusterMap.find(label) != clusterMap.end())
+            {
+                ordered.push_back(label);
+                added.insert(label);
+            }
+        }
+
+        // Add all remaining labels in the map's default order.
+        for (const auto& kv : clusterMap)
+        {
+            if (!added.contains(kv.first))
+            {
+                ordered.push_back(kv.first);
+                added.insert(kv.first);
+            }
+        }
+
+        return ordered;
+    }
+
     std::map<QString, std::vector<unsigned int>> MakeClustersFromList(std::vector<QString> list)
     {
         std::map<QString, std::vector<unsigned int>> clusterData;
@@ -198,17 +229,26 @@ private:
             const auto colorMapIt = ctx.metadataColorMaps.find(columnName);
             const bool hasColorMap = colorMapIt != ctx.metadataColorMaps.end();
 
-            for (auto& kv : clusterMap)
+            const QStringList clusterPriority = config.clusterPriority.value(columnName);
+
+            const QStringList orderedClusterLabels = OrderedClusterLabels(clusterMap, clusterPriority);
+
+            for (const QString& label : orderedClusterLabels)
             {
+                const auto clusterIt = clusterMap.find(label);
+
+                if (clusterIt == clusterMap.end())
+                    continue;
+
                 Cluster cluster;
 
-                cluster.setName(kv.first);
-                cluster.setIndices(kv.second);
+                cluster.setName(label);
+                cluster.setIndices(clusterIt->second);
 
                 if (hasColorMap)
                 {
                     const QHash<QString, QColor>& colorMap = colorMapIt.value();
-                    const auto colorIt = colorMap.find(kv.first);
+                    const auto colorIt = colorMap.find(label);
 
                     if (colorIt != colorMap.end())
                         cluster.setColor(colorIt.value());

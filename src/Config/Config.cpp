@@ -56,6 +56,55 @@ namespace
         return strings;
     }
 
+    QMap<QString, QStringList> ReadStringListMap(const QJsonObject& object, const QString& key)
+    {
+        QMap<QString, QStringList> result;
+
+        const QJsonValue value = object.value(key);
+
+        if (value.isUndefined())
+            return result;
+
+        if (!value.isObject())
+        {
+            qWarning() << "Config field" << key << "must be an object mapping strings to string arrays.";
+            return result;
+        }
+
+        const QJsonObject mapObject = value.toObject();
+
+        for (auto it = mapObject.begin(); it != mapObject.end(); ++it)
+        {
+            if (!it.value().isArray())
+            {
+                qWarning() << "Config field" << key << "entry" << it.key()
+                    << "must be an array of strings.";
+                continue;
+            }
+
+            QStringList values;
+            const QJsonArray array = it.value().toArray();
+
+            for (const QJsonValue& item : array)
+            {
+                if (!item.isString())
+                {
+                    qWarning() << "Config field" << key << "entry" << it.key()
+                        << "contains a non-string value.";
+                    values.clear();
+                    break;
+                }
+
+                values.push_back(item.toString());
+            }
+
+            if (!values.isEmpty())
+                result.insert(it.key(), values);
+        }
+
+        return result;
+    }
+
     bool ReadObsColumns(const QJsonObject& object, const QString& sourcePath, config::TableSource& source)
     {
         const std::optional<QStringList> obsColumns = ReadStringArray(object, config::keys::ObsColumns);
@@ -158,6 +207,9 @@ namespace
         // should be turned into metadata-derived datasets.
         // Missing obs_priority simply means: keep the normal metadata/file order.
         source.obsPriority = ReadStringArray(object, config::keys::ObsPriority).value_or(QStringList());
+
+        // Optional. List of metadata columns with cluster ordering priority
+        source.clusterPriority = ReadStringListMap(object, config::keys::ClusterPriority);
 
         if (source.obsColumnMode == config::ObsColumnMode::All)
         {
