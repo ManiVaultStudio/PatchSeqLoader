@@ -137,10 +137,7 @@ namespace
         return true;
     }
 
-    std::optional<config::TableSource> ReadTableSource(
-        const QJsonObject& parent,
-        const QString& key,
-        const QString& parentPath)
+    std::optional<config::TableSource> ReadTableSource(const QJsonObject& parent, const QString& key, const QString& parentPath)
     {
         const QString sourcePath = QString("%1.%2").arg(parentPath, key);
 
@@ -447,18 +444,21 @@ namespace config
 
         QFile file(filePath);
 
+        // Check if the config file exists
         if (!file.exists())
         {
             qWarning() << "Config file does not exist:" << filePath;
             return false;
         }
 
+        // Check if the config file can be opened
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
         {
             qWarning() << "Could not open config file:" << filePath;
             return false;
         }
 
+        // Parse the document
         QJsonParseError parseError;
         const QJsonDocument document = QJsonDocument::fromJson(file.readAll(), &parseError);
 
@@ -468,6 +468,7 @@ namespace config
             return false;
         }
 
+        // Determine root object of the hierarchy
         if (!document.isObject())
         {
             qWarning() << "Config root must be a JSON object.";
@@ -476,11 +477,13 @@ namespace config
 
         const QJsonObject root = document.object();
 
+        // Read preamble
         format = ReadString(root, config::keys::Format);
         version = ReadString(root, config::keys::Version);
         datasetId = ReadString(root, config::keys::DatasetId);
         isCortical = root.value(config::keys::IsCortical).toBool(false);
 
+        // Validate whether the format string aligns with what we expect
         ValidateKnownFormat(format);
 
         if (format != config::keys::values::CytosplorePatchSeqConfig)
