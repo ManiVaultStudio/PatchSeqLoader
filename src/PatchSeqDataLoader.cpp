@@ -14,6 +14,10 @@
 
 #include <Set.h>
 
+#include <QFileDialog>
+#include <QStandardPaths>
+#include <QDir>
+
 Q_PLUGIN_METADATA(IID "studio.manivault.PatchSeqDataLoader")
 
 using namespace mv;
@@ -36,6 +40,32 @@ namespace
                 .arg(issue.detail);
         }
     }
+
+    QString AskUserForConfigPath()
+    {
+        QSettings settings;
+
+        const QString defaultDirectory = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+
+        const QString initialDirectory = settings.value("PatchSeqDataLoader/lastConfigDirectory", defaultDirectory).toString();
+
+        const QString configPath = QFileDialog::getOpenFileName(
+            nullptr,
+            "Select Patch-seq Configuration File",
+            initialDirectory,
+            "JSON Configuration Files (*.json);;All Files (*)"
+        );
+
+        if (!configPath.isEmpty())
+        {
+            settings.setValue(
+                "PatchSeqDataLoader/lastConfigDirectory",
+                QFileInfo(configPath).absolutePath()
+            );
+        }
+
+        return configPath;
+    }
 }
 
 // =============================================================================
@@ -56,7 +86,7 @@ void PatchSeqDataLoader::loadData()
 {
     Q_INIT_RESOURCE(met_loader_resources);
 
-    auto configPath = QString("D:/Dropbox/Julian/Patchseq/Projects/config_basal_ganglia.json");//askUserForConfigPath();
+    auto configPath = AskUserForConfigPath();
     if (configPath.isEmpty())
         return;
 
