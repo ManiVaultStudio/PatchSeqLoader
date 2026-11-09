@@ -37,6 +37,7 @@ set(PLUGIN_SOURCES
     src/PatchSeqDataLoader.h
     src/PatchSeqDataLoader.cpp
     src/PatchSeqDataLoader.json
+    src/Constants.h
     src/DataFrame.h
     src/DataFrame.cpp
     src/MatrixData.h

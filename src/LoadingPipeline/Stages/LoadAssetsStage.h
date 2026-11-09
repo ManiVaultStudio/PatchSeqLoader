@@ -3,6 +3,8 @@
 #include "LoadingPipeline/PipelineStage.h"
 #include "LoadingPipeline/PipelineContext.h"
 
+#include "Constants.h"
+
 #include "Electrophysiology/NWBLoader.h"
 #include "Morphology/SWCLoader.h"
 
@@ -183,7 +185,7 @@ private:
 
         ctx.ephysTraces = mv::data().createDataset<EphysExperiments>("Electrophysiology Data", displayName, mv::Dataset<mv::DatasetImpl>(), "", false);
 
-        ctx.ephysTraces->setProperty("PatchSeqType", "EphysTraces");
+        ctx.ephysTraces->setProperty(DataProperty::PatchSeqType, "EphysTraces");
 
         LoadInfo loadInfo;
         loadInfo.failedSweepPath = source.failedSweepsPath;
@@ -283,7 +285,7 @@ private:
 
         ctx.cellMorphologies = mv::data().createDataset<CellMorphologies>("Cell Morphology Data", displayName, mv::Dataset<mv::DatasetImpl>(), "", false);
 
-        ctx.cellMorphologies->setProperty("PatchSeqType", "Morphologies");
+        ctx.cellMorphologies->setProperty(DataProperty::PatchSeqType, "Morphologies");
         ctx.cellMorphologies->setProperty("isCortical", ctx.config.isCortical);
 
         QStringList cellIds;
@@ -370,7 +372,7 @@ private:
 //    {
 //        // Create ephys dataset
 //        ctx.ephysTraces = mv::data().createDataset<EphysExperiments>("Electrophysiology Data", "Ephys Traces", mv::Dataset<DatasetImpl>(), "", false);
-//        ctx.ephysTraces->setProperty("PatchSeqType", "EphysTraces");
+//        ctx.ephysTraces->setProperty(DataProperty::PatchSeqType, "EphysTraces");
 //
 //        // Find all .nwb files in given directory
 //        QDir ephysTracesDir(dir);
@@ -425,7 +427,7 @@ private:
 //
 //        // Load morphology cells
 //        ctx.cellMorphologies = mv::data().createDataset<CellMorphologies>("Cell Morphology Data", "Cell Morphologies", mv::Dataset<DatasetImpl>(), "", false);
-//        ctx.cellMorphologies->setProperty("PatchSeqType", "Morphologies");
+//        ctx.cellMorphologies->setProperty(DataProperty::PatchSeqType, "Morphologies");
 //#if defined(DALLEYLEE) || defined(WALEBOER)
 //        ctx.cellMorphologies->setProperty("isCortical", true);
 //#endif

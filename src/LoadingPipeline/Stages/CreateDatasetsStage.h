@@ -196,7 +196,7 @@ private:
             "",
             false);
 
-        textDataset->setProperty("PatchSeqType", sourceName);
+        textDataset->setProperty(DataProperty::PatchSeqType, sourceName);
 
         textDataset->addColumn(data.obs.indexName, data.obs.index);
 
@@ -280,7 +280,7 @@ private:
     void CreateFeatureDataset(PipelineContext& ctx, const QString& sourceName, const AnnotatedData& data, const config::TableSource& config) const
     {
         auto featureDataset = mv::data().createDataset<Points>("Points", config.displayName, mv::Dataset<mv::DatasetImpl>(), "", false);
-        featureDataset->setProperty("PatchSeqType", sourceName);
+        featureDataset->setProperty(DataProperty::PatchSeqType, sourceName);
         featureDataset->setData(std::move(data.X.values), data.X.columnCount);
         featureDataset->setDimensionNames(data.var.index);
 
@@ -295,7 +295,7 @@ private:
     {
         // TODO: create 2D Points/embedding dataset here.
         auto embeddingDataset = mv::data().createDataset<Points>("Points", embedding.displayName, parent, "", false);
-        embeddingDataset->setProperty("PatchSeqType", embeddingName);
+        embeddingDataset->setProperty(DataProperty::PatchSeqType, embeddingName);
         embeddingDataset->setData(data.X.values, data.X.columnCount);
         embeddingDataset->setDimensionNames(data.var.index);
 
